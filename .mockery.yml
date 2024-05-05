@@ -1,0 +1,9 @@
+---
+with-expecter: true
+filename: "mock_{{.InterfaceName | snakecase}}.go"
+packages:
+  github.com/ncotds/nco-qoordinator/pkg/querycoordinator:
+    config:
+      dir: "{{.InterfaceDir}}/mocks"
+    interfaces:
+      Client:
