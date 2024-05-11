@@ -2,7 +2,6 @@ package querycoordinator_test
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -42,7 +41,7 @@ func (s *QueryCoordinatorTestSuite) SetupSuite() {
 
 	s.fixtureExecReturnResult = make(map[string]QueryResult, s.ClientsCount)
 	for i := 0; i < s.ClientsCount; i++ {
-		s.fixtureExecReturnResult[fmt.Sprintf("%s_%d", WordFactory(), i)] = QueryResult{
+		s.fixtureExecReturnResult[UUIDStringFactory()] = QueryResult{
 			RowSet:       QueryResultRowSetFactory(10, 10),
 			AffectedRows: IntFactory(),
 		}
@@ -89,7 +88,7 @@ func (s *QueryCoordinatorTestSuite) TestExecOnUnknownDataSource() {
 		clients = append(clients, client)
 	}
 	coordinator := NewQueryCoordinator(clients[0], clients[1:]...)
-	dsName := WordFactory()
+	dsName := UUIDStringFactory()
 
 	result := coordinator.Exec(context.Background(), s.fixtureQuery, s.fixtureUser, dsName)
 
@@ -105,7 +104,7 @@ func (s *QueryCoordinatorTestSuite) TestExecDataSourceFails() {
 		clients = append(clients, client)
 	}
 	failedClient := mocks.NewMockClient(s.T())
-	failedClient.EXPECT().Name().Return(WordFactory())
+	failedClient.EXPECT().Name().Return(UUIDStringFactory())
 	failedClient.EXPECT().
 		Exec(mock.Anything, s.fixtureQuery, s.fixtureUser).
 		Return(QueryResult{Error: s.fixtureError})
@@ -147,7 +146,7 @@ func (s *QueryCoordinatorTestSuite) TestExecCancel() {
 		fastClients = append(fastClients, client)
 	}
 	slowClient := mocks.NewMockClient(s.T())
-	slowClient.EXPECT().Name().Return(WordFactory())
+	slowClient.EXPECT().Name().Return(UUIDStringFactory())
 	slowClient.On("Exec", mock.Anything, s.fixtureQuery, s.fixtureUser).Return(
 		func(ctx context.Context, query Query, user Credentials) QueryResult {
 			time.Sleep(1 * time.Second)
@@ -167,41 +166,29 @@ func (s *QueryCoordinatorTestSuite) TestExecCancel() {
 }
 
 func TestQueryCoordinator_ClientNames(t *testing.T) {
-	mocksCount := 5
-	names := make([]string, 0, mocksCount)
-	clients := make([]Client, 0, mocksCount)
-	for i := 0; i < mocksCount; i++ {
-		name := WordFactory()
-		client := mocks.NewMockClient(t)
-		client.EXPECT().Name().Return(name)
-		clients = append(clients, client)
-		names = append(names, name)
-	}
-
 	tests := []struct {
-		name      string
-		clients   []Client
-		wantNames []string
+		name         string
+		clientsCount int
 	}{
 		{
-			name:      "single client",
-			clients:   clients[:1],
-			wantNames: names[:1],
+			name:         "single client",
+			clientsCount: 1,
 		},
 		{
-			name:      "a few clients",
-			clients:   clients,
-			wantNames: names,
+			name:         "a few clients",
+			clientsCount: 5,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			q := NewQueryCoordinator(tt.clients[0], tt.clients[1:]...)
+			names, clients := MockClientsFactory(t, tt.clientsCount)
+
+			q := NewQueryCoordinator(clients[0], clients[1:]...)
 
 			gotNames := q.ClientNames()
 
-			assert.ElementsMatch(t, tt.wantNames, gotNames)
+			assert.ElementsMatch(t, names, gotNames)
 		})
 	}
 }

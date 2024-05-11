@@ -3,10 +3,12 @@ package querycoordinator_test
 import (
 	"errors"
 	"math/rand"
+	"testing"
 	"time"
 
 	"github.com/go-faker/faker/v4"
 	. "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
+	mocks "github.com/ncotds/nco-qoordinator/pkg/querycoordinator/mocks"
 )
 
 var (
@@ -28,8 +30,8 @@ func IntFactory() int {
 	return FakerRandom.Int()
 }
 
-func WordFactory() string {
-	return faker.Word()
+func UUIDStringFactory() string {
+	return faker.UUIDHyphenated()
 }
 
 func ErrorFactory() error {
@@ -69,4 +71,15 @@ func QueryResultRowFactory(schema map[string]func() any) QueryResultRow {
 	}
 
 	return fakeRow
+}
+
+func MockClientsFactory(t *testing.T, count int) (names []string, clients []Client) {
+	for i := 0; i < count; i++ {
+		name := UUIDStringFactory()
+		client := mocks.NewMockClient(t)
+		client.EXPECT().Name().Return(name)
+		clients = append(clients, client)
+		names = append(names, name)
+	}
+	return names, clients
 }
