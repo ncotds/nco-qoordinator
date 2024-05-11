@@ -1,4 +1,4 @@
-//go:generate go run github.com/vektra/mockery/v2@v2.42.2
+//go:generate go run github.com/vektra/mockery/v2
 package dbconnector
 
 import (

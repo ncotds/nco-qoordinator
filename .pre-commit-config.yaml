@@ -1,10 +1,36 @@
 repos:
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks: 
+  - repo: local
+    hooks:
       - id: go-fmt
+        name: go-fmt
+        entry: gofmt -l -w -s
+        language: system
+        types: [go]
       - id: go-imports
+        name: go-imports
+        entry: go run golang.org/x/tools/cmd/goimports -l -w
+        language: system
+        types: [go]
+      - id: git-diff-go-files
+        name: git-diff
+        entry: git diff --exit-code
+        language: system
+        types: [go]
+        fail_fast: true
       - id: go-mod-tidy
-      - id: go-cyclo
-        args: [-over=15]
+        name: go-mod-tidy
+        entry: go mod tidy -v
+        language: system
+        pass_filenames: false
+      - id: git-diff-go-mod
+        name: git-diff-go-mod
+        entry: git diff --exit-code
+        language: system
+        files: 'go.(mod|sum)'
+        fail_fast: true
       - id: golangci-lint
+        name: golangci-lint
+        entry: go run -tags=githooks ./tools/githooks/golangci-lint/.
+        language: system
+        types: [go]
+        exclude: 'tools/*'
