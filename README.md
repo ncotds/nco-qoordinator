@@ -1,4 +1,4 @@
-# NC OMNIbus ObjectServer Adapter #
+# NC OMNIbus ObjectServer Query Coordinator #
 
 HTTP-API to proxy requests to one or more "OMNIbus Object Server" instances and collects all results. 
 
@@ -40,12 +40,11 @@ Setup dev environment:
 * setup OMNIbus - TODO
 * install tools and enable pre commit hooks:
     ```
-    go install golang.org/x/tools/cmd/goimports@latest
-    go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+    go mod download -x 
     pre-commit install
     ```
 * run tests:
     ```
-    go test ./... -v
+    make lint test
     ```
 * setup and run TODO
