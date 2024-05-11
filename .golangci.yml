@@ -18,6 +18,9 @@ linters-settings:
       - FIXME
   misspell:
     locale: US
+  testifylint:
+    disable:
+      - require-error
 
 linters:
   enable:
