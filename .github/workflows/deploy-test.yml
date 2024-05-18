@@ -25,6 +25,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Install os packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: freetds-dev
+          version: 1.0
+
       - name: Install dependencies
         run: go mod download -x
 
@@ -44,6 +50,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+
+      - name: Install os packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: freetds-dev
+          version: 1.0
 
       - name: Install dependencies
         run: go mod download -x
