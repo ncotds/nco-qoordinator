@@ -45,7 +45,8 @@ func (c *NcoClient) Name() string {
 }
 
 // Exec runs query and return result or exit on context cancelation
-func (c *NcoClient) Exec(ctx context.Context, query qc.Query, credentials qc.Credentials) (result qc.QueryResult) {
+func (c *NcoClient) Exec(ctx context.Context, query qc.Query, credentials qc.Credentials) qc.QueryResult {
+	var result qc.QueryResult
 	done := make(chan struct{})
 	go func() {
 		result = c.exec(ctx, query, credentials)
@@ -53,9 +54,9 @@ func (c *NcoClient) Exec(ctx context.Context, query qc.Query, credentials qc.Cre
 	}()
 
 	select {
-	case <-done:
 	case <-ctx.Done():
-		result.Error = ctx.Err()
+		return qc.QueryResult{Error: ctx.Err()}
+	case <-done:
 	}
 	return result
 }
