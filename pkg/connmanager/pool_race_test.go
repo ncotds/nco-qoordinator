@@ -35,7 +35,7 @@ func TestPool_Acquire_Concurrent(t *testing.T) {
 			<-ctx.Done()
 			_, errs[i] = pool.Acquire(
 				context.Background(),
-				qc.Credentials{UserName: WordFactory(), Password: WordFactory()},
+				qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()},
 			)
 			wg.Done()
 		}(i)
@@ -96,7 +96,7 @@ func TestPool_Drop_Concurrent(t *testing.T) {
 	for i := 0; i < concurrency; i++ {
 		conns[i], _ = pool.Acquire(
 			context.Background(),
-			qc.Credentials{UserName: WordFactory(), Password: WordFactory()},
+			qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()},
 		)
 	}
 
@@ -138,7 +138,7 @@ func TestPool_Release_Concurrent(t *testing.T) {
 	for i := 0; i < concurrency; i++ {
 		conns[i], _ = pool.Acquire(
 			context.Background(),
-			qc.Credentials{UserName: WordFactory(), Password: WordFactory()},
+			qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()},
 		)
 	}
 
