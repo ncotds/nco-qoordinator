@@ -17,12 +17,12 @@ func ErrorFactory() error {
 	return fmt.Errorf(faker.Sentence())
 }
 
-func DurationFactory() time.Duration {
-	return time.Duration(FakerRandom.Int())
-}
-
 func WordFactory() string {
 	return faker.Word()
+}
+
+func NameFactory() string {
+	return faker.Name()
 }
 
 func SentenceFactory() string {

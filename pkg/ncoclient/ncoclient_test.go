@@ -16,7 +16,7 @@ import (
 
 func TestNcoClient_exec(t *testing.T) {
 	ctx := context.Background()
-	credentials := qc.Credentials{UserName: WordFactory(), Password: WordFactory()}
+	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 	query := qc.Query{SQL: SentenceFactory()}
 	seedList := SeedListFactory(5)
 	anyError := mock.IsType(ErrorFactory())

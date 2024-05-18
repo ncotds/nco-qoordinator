@@ -25,6 +25,10 @@ func WordFactory() string {
 	return faker.Word()
 }
 
+func NameFactory() string {
+	return faker.Name()
+}
+
 func SentenceFactory() string {
 	return faker.Sentence()
 }
