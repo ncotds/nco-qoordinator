@@ -24,10 +24,11 @@ func (c *Connection) Exec(ctx context.Context, query qc.Query) (rows []qc.QueryR
 	}
 
 	var rst []*tds.Result
+	var execErr error
 	done := make(chan struct{})
 
 	go func() {
-		rst, err = c.conn.Exec(query.SQL)
+		rst, execErr = c.conn.Exec(query.SQL)
 		done <- struct{}{}
 	}()
 
@@ -37,8 +38,8 @@ func (c *Connection) Exec(ctx context.Context, query qc.Query) (rows []qc.QueryR
 	case <-done:
 	}
 
-	if err != nil {
-		return rows, affectedRows, err
+	if execErr != nil {
+		return rows, affectedRows, execErr
 	}
 	return parseResults(rst)
 }
@@ -55,12 +56,13 @@ func (c *Connection) IsConnectionError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "dbopen error")
 }
 
-func (c *Connection) open(ctx context.Context) (err error) {
+func (c *Connection) open(ctx context.Context) error {
 	if c.conn != nil {
 		return nil
 	}
 
 	var conn *tds.Conn
+	var err error
 	done := make(chan struct{})
 	go func() {
 		conn, err = tds.NewConn(c.connStr)
