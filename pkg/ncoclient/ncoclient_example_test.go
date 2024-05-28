@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	cm "github.com/ncotds/nco-qoordinator/pkg/connmanager"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	nc "github.com/ncotds/nco-qoordinator/pkg/ncoclient"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
@@ -52,8 +51,11 @@ func (c *DemoConnection) Close() error {
 }
 
 func ExampleNewNcoClient() {
-	pool, _ := cm.NewPool(&DemoConnector{}, []db.Addr{"host1", "host2"})
-	client, err := nc.NewNcoClient("AGG1", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	client, err := nc.NewNcoClient("AGG1", conf)
 
 	fmt.Printf("%T, %v", client, err)
 	// Output:
@@ -61,25 +63,23 @@ func ExampleNewNcoClient() {
 }
 
 func ExampleNewNcoClient_empty_name_fail() {
-	pool, _ := cm.NewPool(&DemoConnector{}, []db.Addr{"host1", "host2"})
-	_, err := nc.NewNcoClient("", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	_, err := nc.NewNcoClient("", conf)
 
 	fmt.Println(err)
 	// Output:
 	// invalid client config: empty name
 }
 
-func ExampleNewNcoClient_empty_pool_fail() {
-	_, err := nc.NewNcoClient("AGG1", nil)
-
-	fmt.Println(err)
-	// Output:
-	// invalid client config: nil pool
-}
-
 func ExampleNcoClient_Name() {
-	pool, _ := cm.NewPool(&DemoConnector{}, []db.Addr{"host1", "host2"})
-	client, _ := nc.NewNcoClient("AGG1", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	name := client.Name()
 
@@ -94,8 +94,11 @@ func ExampleNcoClient_Exec() {
 		{"col1": "data2", "col2": 5},
 	}}
 
-	pool, _ := cm.NewPool(&DemoConnector{demoConn}, []db.Addr{"host1", "host2"})
-	client, _ := nc.NewNcoClient("AGG1", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{demoConn},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx := context.Background()
 	query := qc.Query{SQL: "select 1"}
@@ -113,9 +116,11 @@ func ExampleNcoClient_Exec_cancel() {
 		{"col1": "data1", "col2": 3},
 		{"col1": "data2", "col2": 5},
 	}}
-
-	pool, _ := cm.NewPool(&DemoConnector{demoConn}, []db.Addr{"host1", "host2"})
-	client, _ := nc.NewNcoClient("AGG1", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{demoConn},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	query := qc.Query{SQL: "select 1"}
@@ -135,8 +140,11 @@ func ExampleNcoClient_Close() {
 		{"col1": "data2", "col2": 5},
 	}}
 
-	pool, _ := cm.NewPool(&DemoConnector{demoConn}, []db.Addr{"host1", "host2"})
-	client, _ := nc.NewNcoClient("AGG1", pool)
+	conf := nc.ClientConfig{
+		Connector: &DemoConnector{demoConn},
+		SeedList:  []db.Addr{"host1", "host2"},
+	}
+	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx := context.Background()
 	query := qc.Query{SQL: "select 1"}

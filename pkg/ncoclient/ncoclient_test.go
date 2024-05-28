@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	cm "github.com/ncotds/nco-qoordinator/pkg/connmanager"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	mocks "github.com/ncotds/nco-qoordinator/pkg/dbconnector/mocks"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
@@ -163,9 +162,10 @@ func TestNcoClient_exec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := cm.NewPool(tt.fields.connector(t), seedList)
-			require.NoError(t, err, "cannot create Pool")
-			c, err := NewNcoClient(tt.fields.name, p)
+			c, err := NewNcoClient(
+				tt.fields.name,
+				ClientConfig{Connector: tt.fields.connector(t), SeedList: seedList},
+			)
 			require.NoError(t, err, "cannot create Client")
 
 			got := c.exec(ctx, query, credentials)
