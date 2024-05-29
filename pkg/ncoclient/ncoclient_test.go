@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,6 @@ func TestNcoClient_exec(t *testing.T) {
 	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 	query := qc.Query{SQL: SentenceFactory()}
 	seedList := SeedListFactory(5)
-	anyError := mock.IsType(ErrorFactory())
 
 	type fields struct {
 		name      string
@@ -45,7 +45,6 @@ func TestNcoClient_exec(t *testing.T) {
 						0,
 						nil,
 					).Once()
-					conn.EXPECT().IsConnectionError(nil).Return(false).Once()
 
 					m := mocks.NewMockDBConnector(t)
 					m.EXPECT().Connect(ctx, mock.IsType(db.Addr("")), credentials).
@@ -63,12 +62,12 @@ func TestNcoClient_exec(t *testing.T) {
 				func(t *testing.T) *mocks.MockDBConnector {
 					m := mocks.NewMockDBConnector(t)
 					m.EXPECT().Connect(ctx, mock.IsType(db.Addr("")), credentials).
-						Return(nil, db.ErrConnection)
+						Return(nil, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
 					return m
 				},
 			},
 			false,
-			db.ErrConnection,
+			app.ErrUnavailable,
 		},
 		{
 			"exec query fails",
@@ -76,8 +75,8 @@ func TestNcoClient_exec(t *testing.T) {
 				WordFactory(),
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
-					connBad.EXPECT().Exec(ctx, query).Return(nil, 0, ErrorFactory())
-					connBad.EXPECT().IsConnectionError(anyError).Return(false)
+					connBad.EXPECT().Exec(ctx, query).
+						Return(nil, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory()))
 
 					m := mocks.NewMockDBConnector(t)
 					m.EXPECT().Connect(ctx, mock.IsType(db.Addr("")), credentials).
@@ -86,7 +85,7 @@ func TestNcoClient_exec(t *testing.T) {
 				},
 			},
 			false,
-			db.ErrQuery,
+			app.ErrIncorrectOperation,
 		},
 		{
 			"exec loose connection reconnect ok",
@@ -94,8 +93,8 @@ func TestNcoClient_exec(t *testing.T) {
 				WordFactory(),
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
-					connBad.EXPECT().Exec(ctx, query).Return(nil, 0, ErrorFactory())
-					connBad.EXPECT().IsConnectionError(anyError).Return(true)
+					connBad.EXPECT().Exec(ctx, query).
+						Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
 					connBad.EXPECT().Close().Return(nil)
 
 					connOk := mocks.NewMockExecutorCloser(t)
@@ -108,7 +107,6 @@ func TestNcoClient_exec(t *testing.T) {
 						0,
 						nil,
 					)
-					connOk.EXPECT().IsConnectionError(nil).Return(false)
 
 					var failFlag bool
 
@@ -135,8 +133,8 @@ func TestNcoClient_exec(t *testing.T) {
 				WordFactory(),
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
-					connBad.EXPECT().Exec(ctx, query).Return(nil, 0, ErrorFactory())
-					connBad.EXPECT().IsConnectionError(anyError).Return(true)
+					connBad.EXPECT().Exec(ctx, query).
+						Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
 					connBad.EXPECT().Close().Return(nil)
 
 					var failFlag bool
@@ -149,14 +147,14 @@ func TestNcoClient_exec(t *testing.T) {
 									failFlag = true
 									return connBad, nil
 								}
-								return nil, db.ErrConnection
+								return nil, app.Err(app.ErrCodeUnavailable, "test")
 							},
 						)
 					return m
 				},
 			},
 			false,
-			db.ErrConnection,
+			app.ErrUnavailable,
 		},
 	}
 

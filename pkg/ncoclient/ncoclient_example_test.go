@@ -42,10 +42,6 @@ func (c *DemoConnection) Exec(ctx context.Context, query qc.Query) ([]qc.QueryRe
 	return c.Data, c.Affected, c.Err
 }
 
-func (c *DemoConnection) IsConnectionError(err error) bool {
-	return false
-}
-
 func (c *DemoConnection) Close() error {
 	return nil
 }
@@ -71,7 +67,7 @@ func ExampleNewNcoClient_empty_name_fail() {
 
 	fmt.Println(err)
 	// Output:
-	// invalid client config: empty name
+	// ERR_VALIDATION: invalid client config, empty name
 }
 
 func ExampleNcoClient_Name() {
@@ -159,6 +155,6 @@ func ExampleNcoClient_Close() {
 	fmt.Println(name)
 	// Output:
 	// <nil>
-	// {[] 0 connection manager fails: pool is closed already}
+	// {[] 0 ERR_UNKNOWN: pool is closed already}
 	// AGG1
 }

@@ -168,40 +168,6 @@ func TestConnection_Exec_ReconnectCancel(t *testing.T) {
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
-func TestConnection_IsConnectionError(t *testing.T) {
-	ctx := context.Background()
-	credentials := qc.Credentials{TestConfig.User, TestConfig.Password}
-
-	client := &tdsclient.TDSConnector{TestConnLabel, TestConnTimeoutSec}
-	conn, err := client.Connect(ctx, TestConfig.Address, credentials)
-	require.NoError(t, err, "cannot establish connection")
-	defer conn.Close()
-
-	errors := make(map[string]error)
-	_, err = client.Connect(ctx, db.Addr(WordFactory()), credentials)
-	errors["bad db address"] = err
-	_, err = client.Connect(ctx, TestConfig.Address, qc.Credentials{WordFactory(), WordFactory()})
-	errors["bad credentials"] = err
-	_, _, err = conn.Exec(ctx, qc.Query{SQL: WordFactory()})
-	errors["bad query"] = err
-
-	tests := []struct {
-		name string
-		err  error
-		want bool
-	}{
-		{"no error", nil, false},
-		{"bad db address", errors["bad db address"], true},
-		{"bad credentials", errors["bad credentials"], true},
-		{"bad query", errors["bad query"], false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, conn.IsConnectionError(tt.err), "IsConnectionError(%v)", tt.err)
-		})
-	}
-}
-
 func setUpTest(t *testing.T, rowsCount int) (conn db.ExecutorCloser, rows []AlertStatusRecord) {
 	require.NoError(t, delTestRows(), "cannot delete previous test data")
 	for i := 0; i < rowsCount; i++ {

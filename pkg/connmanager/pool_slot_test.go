@@ -5,12 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	mocks "github.com/ncotds/nco-qoordinator/pkg/dbconnector/mocks"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPoolSlot_Exec(t *testing.T) {
@@ -21,7 +20,6 @@ func TestPoolSlot_Exec(t *testing.T) {
 		{WordFactory(): WordFactory(), WordFactory(): SentenceFactory()},
 		{WordFactory(): WordFactory(), WordFactory(): SentenceFactory()},
 	}
-	anyError := mock.IsType(ErrorFactory())
 
 	type args struct {
 		conn func(t *testing.T) db.ExecutorCloser
@@ -38,7 +36,6 @@ func TestPoolSlot_Exec(t *testing.T) {
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
 				m.EXPECT().Exec(ctx, query).Return(resultRows, len(resultRows), nil).Once()
-				m.EXPECT().IsConnectionError(nil).Return(false).Once()
 				return m
 			}},
 			resultRows,
@@ -49,25 +46,26 @@ func TestPoolSlot_Exec(t *testing.T) {
 			"connection error",
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
-				m.EXPECT().Exec(ctx, query).Return(nil, 0, ErrorFactory()).Once()
-				m.EXPECT().IsConnectionError(anyError).Return(true).Once()
+				m.EXPECT().Exec(ctx, query).
+					Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory())).
+					Once()
 				return m
 			}},
 			nil,
 			0,
-			db.ErrConnection,
+			app.ErrUnavailable,
 		},
 		{
 			"non-connection error",
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
-				m.EXPECT().Exec(ctx, query).Return(nil, 0, ErrorFactory()).Once()
-				m.EXPECT().IsConnectionError(anyError).Return(false).Once()
+				m.EXPECT().Exec(ctx, query).
+					Return(nil, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory())).Once()
 				return m
 			}},
 			nil,
 			0,
-			db.ErrDBConnector,
+			app.ErrIncorrectOperation,
 		},
 	}
 

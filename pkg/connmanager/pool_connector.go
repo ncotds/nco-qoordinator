@@ -2,12 +2,11 @@ package connmanager
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math/rand"
 	"sync/atomic"
 	"time"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
@@ -24,17 +23,17 @@ type poolConnector struct {
 
 // connect provides thread-safe way to open new connection using defined failover strategy
 func (c *poolConnector) connect(ctx context.Context, credentials qc.Credentials) (conn db.ExecutorCloser, err error) {
-	err = fmt.Errorf("%w: there is no any connection to try", db.ErrConnection)
+	err = app.Err(app.ErrCodeUnavailable, "there is no any connection to try")
 	nextIdx := c.failOverSeedIdx(int(c.currentSeedIdx.Load()), len(c.seedList))
 	for i, addr := range iterSlice(c.seedList, nextIdx) {
 		conn, err = c.connector.Connect(ctx, addr, credentials)
 		if err == nil {
 			c.currentSeedIdx.Store(int32((nextIdx + i) % len(c.seedList)))
-			return conn, err
+			return conn, nil
 		}
 	}
-	if !errors.Is(err, ErrConnManager) {
-		err = errors.Join(ErrConnManager, err)
+	if err != nil {
+		err = app.Err(app.ErrCodeUnavailable, "cannot connect any addr", err)
 	}
 	return conn, err
 }

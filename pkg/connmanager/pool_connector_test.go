@@ -2,10 +2,10 @@ package connmanager
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/stretchr/testify/assert"
 
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
@@ -199,7 +199,7 @@ func Test_nextSeedWithFailBack(t *testing.T) {
 
 func Test_poolConnector_connect(t *testing.T) {
 	mockConn := mocks.NewMockExecutorCloser(t)
-	mockErr := fmt.Errorf("%w: test", db.ErrConnection)
+	mockErr := app.Err(app.ErrCodeUnavailable, "test")
 	ctx := context.Background()
 	credentials := qc.Credentials{}
 	seedList := SeedListFactory(5)
@@ -258,7 +258,7 @@ func Test_poolConnector_connect(t *testing.T) {
 				},
 			},
 			nil,
-			db.ErrConnection,
+			app.ErrUnavailable,
 			0, // couldn't reconnect, stay on current addr
 		},
 		{
@@ -274,7 +274,7 @@ func Test_poolConnector_connect(t *testing.T) {
 				},
 			},
 			nil,
-			ErrConnManager,
+			app.ErrUnavailable,
 			0, // couldn't reconnect, stay on current addr
 		},
 		{
@@ -286,7 +286,7 @@ func Test_poolConnector_connect(t *testing.T) {
 				},
 			},
 			nil,
-			db.ErrConnection,
+			app.ErrUnavailable,
 			0, // couldn't reconnect, stay on current addr
 		},
 	}
