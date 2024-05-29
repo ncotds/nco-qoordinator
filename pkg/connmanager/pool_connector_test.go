@@ -296,6 +296,7 @@ func Test_poolConnector_connect(t *testing.T) {
 				connector:       tt.fields.connector(t),
 				seedList:        tt.fields.seedList,
 				failOverSeedIdx: func(currIdx, _ int) (nextIdx int) { return currIdx },
+				log:             app.NewLogger(nil),
 			}
 			c.currentSeedIdx.Store(int32(tt.fields.currentSeedIdx))
 

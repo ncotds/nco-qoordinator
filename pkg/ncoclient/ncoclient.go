@@ -11,6 +11,8 @@ import (
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
 
+const logLabelClient = "ncoclient/NcoClient"
+
 var _ qc.Client = (*NcoClient)(nil)
 
 type ClientConfig struct {
@@ -30,6 +32,8 @@ type ClientConfig struct {
 	// FailBackDelay is time after that client will try to reconnect to the first node in SeedList.
 	// Takes effect if UseRandomFailOver is true
 	FailBackDelay time.Duration
+	// Logger sets logger for client and underlying pool. By default no-op logger is used
+	Logger *app.Logger
 }
 
 // NcoClient implements querycoordinator.Client interface to work with coordinator.
@@ -37,6 +41,7 @@ type ClientConfig struct {
 type NcoClient struct {
 	name string
 	pool *cm.Pool
+	log  *app.Logger
 }
 
 // NewNcoClient returns ready to use instance of client.
@@ -46,7 +51,12 @@ func NewNcoClient(name string, config ClientConfig) (client *NcoClient, err erro
 		return nil, app.Err(app.ErrCodeValidation, "invalid client config, empty name")
 	}
 
-	var poolOpts []cm.PoolOption
+	log := app.NewLogger(nil)
+	if config.Logger != nil {
+		log = config.Logger.WithComponent(logLabelClient).With("nco_client", name)
+	}
+
+	poolOpts := []cm.PoolOption{cm.WithLogger(log)}
 	if config.MaxPoolSize > 0 {
 		poolOpts = append(poolOpts, cm.WithMaxSize(config.MaxPoolSize))
 	}
@@ -65,6 +75,7 @@ func NewNcoClient(name string, config ClientConfig) (client *NcoClient, err erro
 	client = &NcoClient{
 		name: name,
 		pool: pool,
+		log:  log,
 	}
 	return client, err
 }
@@ -98,6 +109,8 @@ func (c *NcoClient) Close() error {
 }
 
 func (c *NcoClient) exec(ctx context.Context, query qc.Query, credentials qc.Credentials) qc.QueryResult {
+	ctx = app.WithLogAttrs(ctx, app.Attrs{"user": credentials.UserName})
+
 	conn, err := c.pool.Acquire(ctx, credentials)
 	if err != nil {
 		return qc.QueryResult{Error: err}
@@ -106,7 +119,10 @@ func (c *NcoClient) exec(ctx context.Context, query qc.Query, credentials qc.Cre
 	rows, affected, err := conn.Exec(ctx, query)
 	// connection is broken, try to establish it again
 	if errors.Is(err, app.ErrUnavailable) {
-		_ = c.pool.Drop(conn)
+		c.log.DebugContext(ctx, "loose connection, try to reconnect")
+		if err := c.pool.Drop(conn); err != nil {
+			c.log.ErrContext(ctx, err, "cannot return failed connection to pool")
+		}
 		conn, err = c.pool.Acquire(ctx, credentials)
 		if err != nil {
 			return qc.QueryResult{Error: err}
@@ -116,7 +132,11 @@ func (c *NcoClient) exec(ctx context.Context, query qc.Query, credentials qc.Cre
 	}
 
 	// return connection to reuse it later
-	_ = c.pool.Release(conn)
+	if releaseErr := c.pool.Release(conn); releaseErr != nil {
+		c.log.ErrContext(ctx, releaseErr, "cannot return connection to pool")
+	} else {
+		c.log.DebugContext(ctx, "connection released to pool")
+	}
 	return qc.QueryResult{
 		RowSet:       rows,
 		AffectedRows: affected,

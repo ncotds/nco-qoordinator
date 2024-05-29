@@ -19,6 +19,7 @@ type poolConnector struct {
 	seedList        []db.Addr
 	currentSeedIdx  atomic.Int32
 	failOverSeedIdx func(currIdx, seedsCount int) (nextIdx int)
+	log             *app.Logger
 }
 
 // connect provides thread-safe way to open new connection using defined failover strategy
@@ -26,11 +27,15 @@ func (c *poolConnector) connect(ctx context.Context, credentials qc.Credentials)
 	err = app.Err(app.ErrCodeUnavailable, "there is no any connection to try")
 	nextIdx := c.failOverSeedIdx(int(c.currentSeedIdx.Load()), len(c.seedList))
 	for i, addr := range iterSlice(c.seedList, nextIdx) {
+		tStart := time.Now()
 		conn, err = c.connector.Connect(ctx, addr, credentials)
+		logArgs := []any{"address", addr, "user", credentials.UserName, "exec_time", time.Since(tStart).String()}
 		if err == nil {
+			c.log.DebugContext(ctx, "connect success", logArgs...)
 			c.currentSeedIdx.Store(int32((nextIdx + i) % len(c.seedList)))
 			return conn, nil
 		}
+		c.log.DebugContext(ctx, "connect failed, try next", logArgs...)
 	}
 	if err != nil {
 		err = app.Err(app.ErrCodeUnavailable, "cannot connect any addr", err)

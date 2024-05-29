@@ -71,7 +71,7 @@ func TestPoolSlot_Exec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conn := &PoolSlot{conn: tt.args.conn(t)}
+			conn := &PoolSlot{conn: tt.args.conn(t), log: app.NewLogger(nil)}
 			rows, affected, err := conn.Exec(ctx, query)
 
 			assert.Equal(t, tt.wantRows, rows)

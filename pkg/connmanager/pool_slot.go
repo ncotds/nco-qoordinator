@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
@@ -14,13 +16,16 @@ type PoolSlot struct {
 	poolUUID, key string
 	prev, next    *PoolSlot
 	inUse         atomic.Bool
+	log           *app.Logger
 
 	conn db.ExecutorCloser
 }
 
 // Exec makes DB query using underlying DB connection implementation
 func (s *PoolSlot) Exec(ctx context.Context, query qc.Query) (rows []qc.QueryResultRow, affectedRows int, err error) {
+	tStart := time.Now()
 	rows, affectedRows, err = s.conn.Exec(ctx, query)
+	s.log.DebugContext(ctx, "exec completed", "exec_time", time.Since(tStart).String())
 	return rows, affectedRows, err
 }
 

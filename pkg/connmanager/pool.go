@@ -16,6 +16,10 @@ const (
 	// MaxConnectionPoolSize defines the maximum allowed Pool size.
 	// This is a restriction of Netcool Omnibus Object Server software
 	MaxConnectionPoolSize = 1000
+
+	logLabelPool          = "connmanager/Pool"
+	logLabelPoolConnector = "connmanager/poolConnector"
+	logLabelPoolSlot      = "connmanager/PoolSlot"
 )
 
 var ErrPoolClosed = app.Err(app.ErrCodeUnknown, "pool is closed already")
@@ -24,6 +28,8 @@ var ErrPoolClosed = app.Err(app.ErrCodeUnknown, "pool is closed already")
 type Pool struct {
 	poolUUID string
 	maxSize  int
+
+	log *app.Logger
 
 	isClosed atomic.Bool
 
@@ -36,13 +42,13 @@ type Pool struct {
 // NewPool builds new ready for use Pool.
 //
 // Params:
-// - connector: object that can open DB connection
-// - seedList: list of DB instances
+//   - connector: object that can open DB connections
+//   - seedList: list of DB instances
 //
 // Options:
 //   - WithMaxSize - max connections
 //   - WithFailBack - failover strategy used for Aggregation layer of OMNIbus cluster
-//   - WithRandomFailOver - failover strategy used for Display level of OMNIBus cluster
+//   - WithRandomFailOver - failover strategy used for Display level of OMNIbus cluster
 func NewPool(connector db.DBConnector, seedList []db.Addr, options ...PoolOption) (*Pool, error) {
 	if connector == nil {
 		return nil, app.Err(app.ErrCodeValidation, "connector cannot be nil")
@@ -63,6 +69,10 @@ func NewPool(connector db.DBConnector, seedList []db.Addr, options ...PoolOption
 		},
 	}
 
+	// noop logger by default
+	log := app.NewLogger(nil)
+	setUpLog(pool, log)
+
 	// apply options
 	for _, option := range options {
 		if err := option(pool); err != nil {
@@ -71,11 +81,13 @@ func NewPool(connector db.DBConnector, seedList []db.Addr, options ...PoolOption
 	}
 
 	// create available slots
+	slotLog := pool.log.WithComponent(logLabelPoolSlot)
 	pool.emptySlots = make(chan *PoolSlot, pool.maxSize)
 	for i := 0; i < pool.maxSize; i++ {
-		pool.emptySlots <- &PoolSlot{poolUUID: pool.poolUUID}
+		pool.emptySlots <- &PoolSlot{poolUUID: pool.poolUUID, log: slotLog}
 	}
 
+	pool.log.Debug("pool created", "addresses", seedList)
 	return pool, nil
 }
 
@@ -91,11 +103,14 @@ func (p *Pool) Acquire(ctx context.Context, credentials qc.Credentials) (conn *P
 	key := credentials.UserName
 	conn = p.idleConnCache.pop(key)
 	if conn == nil {
+		p.log.DebugContext(ctx, "there is no cached connection, try create")
 		// make new one
 		conn, err = p.newConn(ctx, credentials)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		p.log.DebugContext(ctx, "get cached connection")
 	}
 
 	conn.key = key
@@ -248,5 +263,20 @@ func WithRandomFailOver() PoolOption {
 	return func(pool *Pool) error {
 		pool.failOverSeedIdx = nextSeedRandom()
 		return nil
+	}
+}
+
+// WithLogger sets logger for Pool. By default no-op logger is used
+func WithLogger(log *app.Logger) PoolOption {
+	return func(pool *Pool) error {
+		setUpLog(pool, log)
+		return nil
+	}
+}
+
+func setUpLog(pool *Pool, log *app.Logger) {
+	if pool != nil && log != nil {
+		pool.log = log.WithComponent(logLabelPool)
+		pool.poolConnector.log = log.WithComponent(logLabelPoolConnector)
 	}
 }
