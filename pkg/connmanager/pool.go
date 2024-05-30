@@ -240,8 +240,10 @@ func WithMaxSize(maxSize int) PoolOption {
 
 // WithFailBack option sets Pool's failover policy to 'FailBack'
 //
-// It means that when current connection is loosed, Pool firstly tries to connect
-// to any random address from seed list, except the current one.
+// It means that when current connection is loosed, Pool firstly tries to connect:
+//   - to the first address from seed list if Delay exceeded (from the last reconnect try)
+//   - to address from seed list, next to current one otherwise
+//
 // If those address fails, then Pool continue with next seed...
 // and makes one attempt to each address from seed list until success or
 // attempts to all addresses will fail
