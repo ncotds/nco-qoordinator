@@ -1,0 +1,175 @@
+openapi: 3.0.0
+info:
+  title: Netcool OMNIBus Query Coordinator
+  version: 0.1.0
+  description: A tool to send SQL requests to one or more OMNIBus clusters, collect responses, and return as a single JSON.
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /rawSQL:
+    post:
+      tags:
+        - api/omnibus
+      summary: Send SQL request to OMNIbus clusters
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: "#/components/parameters/XRequestIDHeader"
+      requestBody:
+        description: SQL request to be executed on OMNIBus clusters
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RawSQLRequest"
+      responses:
+        "200":
+          description: Successful response with combined results from the clusters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RawSQLListResponse"
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /clusterNames:
+    get:
+      tags:
+        - api/omnibus
+      summary: Retrieve list of available OMNIBus clusters
+      parameters:
+        - $ref: "#/components/parameters/XRequestIDHeader"
+      responses:
+        "200":
+          description: List of available clusters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: Cluster name
+                example:
+                  - "cluster1"
+                  - "cluster2"
+                  - "cluster3"
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    XRequestIDHeader:
+      name: "X-Request-Id"
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Unique ID, required for all API requests
+  schemas:
+    RawSQLRequest:
+      type: object
+      required:
+        - sql
+      properties:
+        sql:
+          type: string
+          description: SQL query to execute
+          example: "SELECT * FROM status"
+        clusters:
+          type: array
+          items:
+            type: string
+          description: List of cluster names to send the query to
+          example: ["cluster1", "cluster2"]
+    RawSQLListResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/RawSQLResponse"
+      example:
+        - clusterName: Cluster1
+          rows:
+            - Identifier: "12345"
+              Node: "Server1"
+              NodeAlias: "srv1"
+              Agent: "Netcool"
+              Manager: "AlertMgr"
+              AlertGroup: "Network"
+              AlertKey: "NetworkDown"
+              Type: 1
+              Severity: 3
+              Summary: "Network is down"
+              FirstOccurrence: 1621098400
+              URL: "http://example.com"
+              ExtendedAttr: "Additional information about the alert"
+            - Identifier: "54321"
+              Node: "Server2"
+              NodeAlias: "srv2"
+              Agent: "Netcool"
+              Manager: "AlertMgr"
+              AlertGroup: "Server"
+              AlertKey: "DiskFull"
+              Type: 2
+              Severity: 2
+              Summary: "Disk space is running low"
+              FirstOccurrence: 1621098500
+              URL: "http://example.com"
+              ExtendedAttr: "Additional information about the alert"
+          affectedRows: 2
+        - clusterName: Cluster2
+          rows: []
+          affectedRows: 0
+          error:
+            error: ERR_UNAVAILABLE
+            message: "cannot connect to server"
+    RawSQLResponse:
+      type: object
+      required:
+        - clusterName
+        - rows
+        - affectedRows
+      properties:
+        clusterName:
+          type: string
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Rows returned from the cluster
+        affectedRows:
+          type: integer
+          description: Number of rows affected by the query
+        error:
+          $ref: "#/components/schemas/ErrorResponse"
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error 'business' code
+          enum:
+            - ERR_UNKNOWN
+            - ERR_TIMEOUT
+            - ERR_UNAVAILABLE
+            - ERR_VALIDATION
+            - ERR_INCORRECT_OPERATION
+            - ERR_INSUFFICIENT_PRIVILEGES
+        message:
+          type: string
+          description: Error message
+        reason:
+          type: string
+          description: Details about error
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
