@@ -1,0 +1,48 @@
+---
+# log_level default is ERROR
+log_level: INFO
+# if log_file is empty, sends log to STDOUT
+#log_file: /tmp/nco.log
+http_server:
+  # listen default is ":5000"
+  listen: ":8090"
+  #
+  # timeouts prevents 'Slowloris Attack'
+  #
+  # timeout is the maximum duration:
+  #   - for reading the entire request, including the body
+  #   - before timing out writes of the response
+  # a zero or negative value means there will be no timeout
+  timeout: "5s"
+  # idle_timeout is the maximum amount of time to wait for the next request
+  # when keep-alives are enabled
+  idle_timeout: "60s"
+omnibus:
+  # connection_label you can see in OMNIbus "catalog.connections" table (AppName field)
+  connection_label: "nco-qoordinator"
+  # max_connections can be established to each of clusters
+  max_connections: 10
+  #
+  # failover_policy
+  #
+  # random_fail_over sets clients fail over strategy to 'RandomFailOver'.
+  # it means that when current connection is loosed, client firstly tries to connect to any random address
+  # from seed list, except the current one. if those address fails, then client continue with next seed...
+  # and makes one attempt to each address from seed list until success or attempts to all addresses will fail
+  #random_fail_over: false
+  #
+  # fail_back sets clients failover policy to 'FailBack', overrides random_fail_over.
+  # it means that when current connection is loosed, client firstly tries to connect:
+  #   - to the first address from seed list if Delay exceeded (from the last reconnect try)
+  #   - to address from seed list, next to current one otherwise
+  # if those address fails, then client continue with next seed...
+  # and makes one attempt to each address from seed list until success or attempts to all addresses will fail
+  #fail_back: true
+  #fail_back_delay: 300s
+  clusters:
+    AGG1:
+      - localhost:4101
+      - localhost:4100
+    AGG2:
+      - 127.0.0.15:4100
+      - 127.0.0.15:4101
