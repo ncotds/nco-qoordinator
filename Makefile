@@ -21,4 +21,15 @@ test-int:
 .PHONY: lint
 #? lint: Run golangci-lint
 lint:
+	gofmt -s -l -w pkg/ cmd/
 	$(GOLANGCI_LINT_CMD) run ./...
+
+.PHONY: generate
+#? generate: Run go generate
+generate:
+	go generate ./...
+
+.PHONY: benchmark-restapi
+#? benchmark-restapi: Run go generate
+benchmark-restapi:
+	go test -bench . -benchmem ./pkg/restapi/.
