@@ -28,9 +28,9 @@ repos:
         language: system
         files: 'go.(mod|sum)'
         fail_fast: true
-      - id: golangci-lint
-        name: golangci-lint
-        entry: go run -tags=githooks ./tools/githooks/golangci-lint/.
+      - id: golangci-lint-staged
+        name: golangci-lint-staged
+        entry: go run -tags=githooks ./tools/githooks/golangci-lint-staged/.
         language: system
-        types: [go]
-        exclude: 'tools/*'
+        pass_filenames: false
+        always_run: true
