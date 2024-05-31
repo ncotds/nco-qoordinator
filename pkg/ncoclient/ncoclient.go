@@ -3,19 +3,15 @@ package ncoclient
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	cm "github.com/ncotds/nco-qoordinator/pkg/connmanager"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
 
-var (
-	_ qc.Client = (*NcoClient)(nil)
-
-	ErrClientConfig = fmt.Errorf("invalid client config")
-)
+var _ qc.Client = (*NcoClient)(nil)
 
 type ClientConfig struct {
 	// Connector is object that can open DB connections
@@ -47,7 +43,7 @@ type NcoClient struct {
 // Calls connmanager.NewPool to create underlying connmanager.Pool
 func NewNcoClient(name string, config ClientConfig) (client *NcoClient, err error) {
 	if name == "" {
-		return nil, fmt.Errorf("%w: empty name", ErrClientConfig)
+		return nil, app.Err(app.ErrCodeValidation, "invalid client config, empty name")
 	}
 
 	var poolOpts []cm.PoolOption
@@ -109,7 +105,7 @@ func (c *NcoClient) exec(ctx context.Context, query qc.Query, credentials qc.Cre
 
 	rows, affected, err := conn.Exec(ctx, query)
 	// connection is broken, try to establish it again
-	if errors.Is(err, db.ErrConnection) {
+	if errors.Is(err, app.ErrUnavailable) {
 		_ = c.pool.Drop(conn)
 		conn, err = c.pool.Acquire(ctx, credentials)
 		if err != nil {

@@ -2,7 +2,6 @@ package connmanager
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"sync/atomic"
 
@@ -22,11 +21,6 @@ type PoolSlot struct {
 // Exec makes DB query using underlying DB connection implementation
 func (s *PoolSlot) Exec(ctx context.Context, query qc.Query) (rows []qc.QueryResultRow, affectedRows int, err error) {
 	rows, affectedRows, err = s.conn.Exec(ctx, query)
-	if s.conn.IsConnectionError(err) {
-		err = errors.Join(db.ErrConnection, err)
-	} else if err != nil {
-		err = errors.Join(db.ErrQuery, err)
-	}
 	return rows, affectedRows, err
 }
 

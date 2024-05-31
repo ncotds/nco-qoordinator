@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
@@ -16,6 +17,8 @@ const (
 	// This is a restriction of Netcool Omnibus Object Server software
 	MaxConnectionPoolSize = 1000
 )
+
+var ErrPoolClosed = app.Err(app.ErrCodeUnknown, "pool is closed already")
 
 // Pool creates and stores DB connections to reuse it
 type Pool struct {
@@ -42,10 +45,10 @@ type Pool struct {
 //   - WithRandomFailOver - failover strategy used for Display level of OMNIBus cluster
 func NewPool(connector db.DBConnector, seedList []db.Addr, options ...PoolOption) (*Pool, error) {
 	if connector == nil {
-		return nil, fmt.Errorf("%w: connector cannot be nil", ErrBadConfiguration)
+		return nil, app.Err(app.ErrCodeValidation, "connector cannot be nil")
 	}
 	if len(seedList) == 0 {
-		return nil, fmt.Errorf("%w: at least one seed is required", ErrBadConfiguration)
+		return nil, app.Err(app.ErrCodeValidation, "at least one seed is required")
 	}
 
 	pool := &Pool{
@@ -179,20 +182,19 @@ func (p *Pool) acquireSlot() (slot *PoolSlot, err error) {
 		return slot, nil
 	}
 
-	return slot, ErrConnectionLimit
+	return slot, app.Err(app.ErrCodeUnavailable, "connections limit exceed")
 }
 
-func (p *Pool) markUnused(slot *PoolSlot) error {
-	if slot == nil {
-		return fmt.Errorf("%w: nil slot", ErrConnectionRelease)
+func (p *Pool) markUnused(slot *PoolSlot) (err error) {
+	switch {
+	case slot == nil:
+		err = app.Err(app.ErrCodeUnknown, "cannot release connection, nil slot")
+	case slot.poolUUID != p.poolUUID:
+		err = app.Err(app.ErrCodeUnknown, "cannot release connection, not from given pool")
+	case !slot.inUse.CompareAndSwap(true, false):
+		err = app.Err(app.ErrCodeUnknown, "cannot release connection, not in use")
 	}
-	if slot.poolUUID != p.poolUUID {
-		return fmt.Errorf("%w: not from given pool", ErrConnectionRelease)
-	}
-	if !slot.inUse.CompareAndSwap(true, false) {
-		return fmt.Errorf("%w: not in use", ErrConnectionRelease)
-	}
-	return nil
+	return err
 }
 
 // PoolOption represent optional parameter to configure new Pool
@@ -208,11 +210,12 @@ type PoolOption func(pool *Pool) error
 func WithMaxSize(maxSize int) PoolOption {
 	return func(pool *Pool) error {
 		if maxSize < 1 || maxSize > MaxConnectionPoolSize {
-			return fmt.Errorf(
-				"%w: invalid pool size: %d, allowed values are: 1..%d",
-				ErrBadConfiguration,
-				maxSize,
-				MaxConnectionPoolSize,
+			return app.Err(app.ErrCodeValidation,
+				fmt.Sprintf(
+					"invalid pool size: %d, allowed values are: 1..%d",
+					maxSize,
+					MaxConnectionPoolSize,
+				),
 			)
 		}
 		pool.maxSize = maxSize

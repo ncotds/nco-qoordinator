@@ -2,10 +2,10 @@ package connmanager_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -46,26 +46,26 @@ func TestNewPool(t *testing.T) {
 		{
 			"nil connector fail",
 			args{nil, []db.Addr{"1"}, []PoolOption{}},
-			ErrBadConfiguration,
+			app.ErrValidation,
 		},
 		{
 			"empty seed list fail",
 			args{mockConn, []db.Addr{}, []PoolOption{}},
-			ErrBadConfiguration,
+			app.ErrValidation,
 		},
 		{
 			"max size too much",
 			args{mockConn, []db.Addr{"1"}, []PoolOption{
 				WithMaxSize(MaxConnectionPoolSize + FakerRandom.Int()),
 			}},
-			ErrBadConfiguration,
+			app.ErrValidation,
 		},
 		{
 			"max size too low",
 			args{mockConn, []db.Addr{"1"}, []PoolOption{
 				WithMaxSize(0 - FakerRandom.Int()),
 			}},
-			ErrBadConfiguration,
+			app.ErrValidation,
 		},
 	}
 	for _, tt := range tests {
@@ -172,7 +172,7 @@ func TestPool_Acquire(t *testing.T) {
 					}
 				},
 			},
-			ErrConnectionLimit,
+			app.ErrUnavailable,
 		},
 		{
 			"cannot open conn fails",
@@ -180,11 +180,11 @@ func TestPool_Acquire(t *testing.T) {
 				connector: func(t *testing.T) *mocks.MockDBConnector {
 					m := mocks.NewMockDBConnector(t)
 					m.EXPECT().Connect(ctx, mock.IsType(db.Addr("")), mock.IsType(credentials)).
-						Return(nil, fmt.Errorf("%w: test err", db.ErrConnection))
+						Return(nil, app.Err(app.ErrCodeUnavailable, "test"))
 					return m
 				},
 			},
-			db.ErrConnection,
+			app.ErrUnavailable,
 		},
 		{
 			"pool is closed fails",
@@ -387,7 +387,7 @@ func TestPool_Drop(t *testing.T) {
 			func(p *Pool) args {
 				return args{conn: &PoolSlot{}}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 		{
 			"not used fails",
@@ -401,7 +401,7 @@ func TestPool_Drop(t *testing.T) {
 				require.NoError(t, p.Drop(c))
 				return args{conn: c}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 		{
 			"nil conn fails",
@@ -411,7 +411,7 @@ func TestPool_Drop(t *testing.T) {
 			func(p *Pool) args {
 				return args{conn: nil}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 	}
 
@@ -485,7 +485,7 @@ func TestPool_Release(t *testing.T) {
 			func(p *Pool) args {
 				return args{conn: &PoolSlot{}}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 		{
 			"not used fails",
@@ -497,7 +497,7 @@ func TestPool_Release(t *testing.T) {
 				require.NoError(t, p.Release(c))
 				return args{conn: c}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 		{
 			"nil conn fails",
@@ -507,7 +507,7 @@ func TestPool_Release(t *testing.T) {
 			func(p *Pool) args {
 				return args{conn: nil}
 			},
-			ErrConnectionRelease,
+			app.ErrUnknown,
 		},
 	}
 

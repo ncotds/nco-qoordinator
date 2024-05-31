@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	tds "github.com/minus5/gofreetds"
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/querycoordinator"
 )
@@ -38,10 +39,16 @@ func (c *Connection) Exec(ctx context.Context, query qc.Query) (rows []qc.QueryR
 	case <-done:
 	}
 
-	if execErr != nil {
-		return rows, affectedRows, execErr
+	switch {
+	case c.isConnectionError(execErr):
+		err = app.Err(app.ErrCodeUnavailable, "connection failed", execErr)
+	case execErr != nil:
+		err = app.Err(app.ErrCodeIncorrectOperation, "query failed", execErr)
+	default:
+		rows, affectedRows, err = parseResults(rst)
 	}
-	return parseResults(rst)
+
+	return rows, affectedRows, err
 }
 
 func (c *Connection) Close() error {
@@ -52,7 +59,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-func (c *Connection) IsConnectionError(err error) bool {
+func (c *Connection) isConnectionError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "dbopen error")
 }
 
@@ -76,6 +83,7 @@ func (c *Connection) open(ctx context.Context) error {
 	}
 
 	if err != nil {
+		err = app.Err(app.ErrCodeUnavailable, "cannot connect db", err)
 		return err
 	}
 	c.conn = conn
@@ -84,7 +92,8 @@ func (c *Connection) open(ctx context.Context) error {
 
 func parseResults(rst []*tds.Result) (rows []qc.QueryResultRow, affectedRows int, err error) {
 	if len(rst) < 2 { // typically, ObjectServer returns 2 results: rowset and metadata
-		return rows, affectedRows, fmt.Errorf("cannot parse db response")
+		err = app.Err(app.ErrCodeUnknown, fmt.Sprintf("unexpected db response: %#v", rst))
+		return rows, affectedRows, err
 	}
 
 	cursor, meta := rst[0], rst[1]

@@ -59,7 +59,7 @@ func ExamplePool_Acquire() {
 	// Output:
 	// *connmanager.PoolSlot, <nil>
 	// *connmanager.PoolSlot, <nil>
-	// *connmanager.PoolSlot, connection manager fails: connections limit exceed
+	// *connmanager.PoolSlot, ERR_UNAVAILABLE: connections limit exceed
 }
 
 func ExamplePool_Release() {
@@ -81,7 +81,7 @@ func ExamplePool_Release() {
 	fmt.Println(err2)
 	// Output:
 	// <nil>
-	// connection manager fails: cannot release connection: not in use
+	// ERR_UNKNOWN: cannot release connection, not in use
 }
 
 func ExamplePool_Drop() {
@@ -103,7 +103,7 @@ func ExamplePool_Drop() {
 	fmt.Println(err2)
 	// Output:
 	// <nil>
-	// connection manager fails: cannot release connection: not in use
+	// ERR_UNKNOWN: cannot release connection, not in use
 }
 
 func ExamplePool_Close() {
@@ -126,5 +126,5 @@ func ExamplePool_Close() {
 	fmt.Println(err2)
 	// Output:
 	// <nil>
-	// connection manager fails: pool is closed already
+	// ERR_UNKNOWN: pool is closed already
 }

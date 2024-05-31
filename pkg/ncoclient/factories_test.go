@@ -1,21 +1,9 @@
 package ncoclient
 
 import (
-	"fmt"
-	"math/rand"
-	"time"
-
 	"github.com/go-faker/faker/v4"
 	db "github.com/ncotds/nco-qoordinator/pkg/dbconnector"
 )
-
-var (
-	FakerRandom = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
-
-func ErrorFactory() error {
-	return fmt.Errorf(faker.Sentence())
-}
 
 func WordFactory() string {
 	return faker.Word()
