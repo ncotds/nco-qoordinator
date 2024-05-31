@@ -4,6 +4,8 @@ GOARCH := $(shell go env GOARCH)
 GOTESTSUM_CMD=go run gotest.tools/gotestsum
 GOLANGCI_LINT_CMD=go run github.com/golangci/golangci-lint/cmd/golangci-lint
 
+API_CONFIG_PATH=$(shell pwd)/local.yml
+
 .PHONY: test
 #? test: Run the unit and integration tests
 test: test-unit test-int
@@ -33,3 +35,8 @@ generate:
 #? benchmark-restapi: Run go generate
 benchmark-restapi:
 	go test -bench . -benchmem ./internal/restapi/.
+
+.PHONY: run-ncoq-api
+#? run-ncoq-api: Run cmd/ncoq-api
+run-ncoq-api:
+	go run github.com/vitalyshatskikh/human-readable-json-logging/cmd/pplog go run ./cmd/ncoq-api/. -c $(API_CONFIG_PATH)
