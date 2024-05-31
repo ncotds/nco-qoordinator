@@ -2,12 +2,12 @@
 with-expecter: true
 filename: "mock_{{.InterfaceName | snakecase}}.go"
 packages:
-  github.com/ncotds/nco-qoordinator/pkg/querycoordinator:
+  github.com/ncotds/nco-qoordinator/internal/querycoordinator:
     config:
       dir: "{{.InterfaceDir}}/mocks"
     interfaces:
       Client:
-  github.com/ncotds/nco-qoordinator/pkg/dbconnector:
+  github.com/ncotds/nco-qoordinator/internal/dbconnector:
     config:
       dir: "{{.InterfaceDir}}/mocks"
     interfaces:

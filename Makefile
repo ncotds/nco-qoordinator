@@ -11,17 +11,17 @@ test: test-unit test-int
 .PHONY: test-unit
 #? test-unit: Run the unit tests
 test-unit:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -coverprofile=coverage.txt -covermode atomic -race ./pkg/... ./cmd/...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -coverprofile=coverage.txt -covermode atomic -race ./internal/... ./pkg/... ./cmd/...
 
 .PHONY: test-int
 #? test-unit: Run the integration tests
 test-int:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -tags=integration -coverprofile=coverage.txt -covermode atomic -race ./pkg/... ./cmd/...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -tags=integration -coverprofile=coverage.txt -covermode atomic -race ./internal/... ./pkg/... ./cmd/...
 
 .PHONY: lint
 #? lint: Run golangci-lint
 lint:
-	gofmt -s -l -w pkg/ cmd/
+	gofmt -s -l -w internal/ pkg/ cmd/
 	$(GOLANGCI_LINT_CMD) run ./...
 
 .PHONY: generate
@@ -32,4 +32,4 @@ generate:
 .PHONY: benchmark-restapi
 #? benchmark-restapi: Run go generate
 benchmark-restapi:
-	go test -bench . -benchmem ./pkg/restapi/.
+	go test -bench . -benchmem ./internal/restapi/.
