@@ -38,7 +38,7 @@ func NewRESTServerComponent(
 	}, nil
 }
 
-// Run starts listening http host:port
+// Run starts listening http host:port and blocks until it stopped
 func (s *RESTServerComponent) Run() error {
 	err := s.srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -47,7 +47,7 @@ func (s *RESTServerComponent) Run() error {
 	return err
 }
 
-// Shutdown stops http server
+// Shutdown gracefully stops http server
 func (s *RESTServerComponent) Shutdown(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
