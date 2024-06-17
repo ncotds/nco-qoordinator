@@ -44,11 +44,11 @@ f50f0b2cab1c   nco_objserver-omnibus0-1   0.05%     43.37MiB / 2GiB     2.12%   
 
 Execution time per benchmark iteration in ms, less is better.
 
-![Exec time per iteration (ms)](/exec_time_per_iteration.png)
+![Exec time per iteration (ms)](exec_time_per_iteration.png)
 
 Memory used by client per benchmark iteration in KB, less is better.
 
-![Memory per iteration (KB)](/mem_per_iteration.png)
+![Memory per iteration (KB)](mem_per_iteration.png)
 
 ### `qoordinator`
 
