@@ -1,0 +1,3 @@
+[submodule "tests/docker-omnibus"]
+	path = tests/docker-omnibus
+	url = git@github.com:juliusloman/docker-omnibus.git
