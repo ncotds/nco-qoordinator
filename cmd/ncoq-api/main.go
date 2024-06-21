@@ -16,7 +16,10 @@ import (
 )
 
 var (
-	configPath = flag.String("c", "config.yml", "path to config file")
+	version = "development"
+
+	configPath  = flag.String("c", "config.yml", "path to config file")
+	showVersion = flag.Bool("version", false, "print version and exit")
 )
 
 func main() {
@@ -27,6 +30,11 @@ func run() (rc int) {
 	rc = 1
 
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("version:", version)
+		return 0
+	}
+
 	conf, err := config.LoadConfig(*configPath)
 	if err != nil {
 		fmt.Println("cannot get config", err.Error())
