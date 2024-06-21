@@ -32,7 +32,7 @@ func (q *Client) RawSQLPost(
 	_ context.Context,
 	query models.Query,
 	credentials models.Credentials,
-) (map[string]models.QueryResult, error) {
+) (map[string]client.QueryResult, error) {
 	payload, _ := json.Marshal(query)
 	req, _ := http.NewRequest(http.MethodPost, q.rawSqlUrl, bytes.NewBuffer(payload))
 	req.Header.Add("X-Request-Id", uuid.NewString())
@@ -51,7 +51,7 @@ func (q *Client) RawSQLPost(
 
 	var resultPayload []struct {
 		ClientName   string
-		Rows         []models.QueryResultRow
+		Rows         []map[string]any
 		AffectedRows int
 	}
 	err = json.NewDecoder(resp.Body).Decode(&resultPayload)
@@ -60,9 +60,9 @@ func (q *Client) RawSQLPost(
 		return nil, fmt.Errorf("cannot parse")
 	}
 
-	result := make(map[string]models.QueryResult, len(resultPayload))
+	result := make(map[string]client.QueryResult, len(resultPayload))
 	for _, item := range resultPayload {
-		result[item.ClientName] = models.QueryResult{
+		result[item.ClientName] = client.QueryResult{
 			RowSet:       item.Rows,
 			AffectedRows: item.AffectedRows,
 		}

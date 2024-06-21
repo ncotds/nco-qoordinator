@@ -69,25 +69,23 @@ func (_c *MockExecutorCloser_Close_Call) RunAndReturn(run func() error) *MockExe
 }
 
 // Exec provides a mock function with given fields: ctx, query
-func (_m *MockExecutorCloser) Exec(ctx context.Context, query models.Query) ([]models.QueryResultRow, int, error) {
+func (_m *MockExecutorCloser) Exec(ctx context.Context, query models.Query) (models.RowSet, int, error) {
 	ret := _m.Called(ctx, query)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Exec")
 	}
 
-	var r0 []models.QueryResultRow
+	var r0 models.RowSet
 	var r1 int
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, models.Query) ([]models.QueryResultRow, int, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, models.Query) (models.RowSet, int, error)); ok {
 		return rf(ctx, query)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, models.Query) []models.QueryResultRow); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, models.Query) models.RowSet); ok {
 		r0 = rf(ctx, query)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]models.QueryResultRow)
-		}
+		r0 = ret.Get(0).(models.RowSet)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, models.Query) int); ok {
@@ -124,12 +122,12 @@ func (_c *MockExecutorCloser_Exec_Call) Run(run func(ctx context.Context, query 
 	return _c
 }
 
-func (_c *MockExecutorCloser_Exec_Call) Return(rows []models.QueryResultRow, affectedRows int, err error) *MockExecutorCloser_Exec_Call {
+func (_c *MockExecutorCloser_Exec_Call) Return(rows models.RowSet, affectedRows int, err error) *MockExecutorCloser_Exec_Call {
 	_c.Call.Return(rows, affectedRows, err)
 	return _c
 }
 
-func (_c *MockExecutorCloser_Exec_Call) RunAndReturn(run func(context.Context, models.Query) ([]models.QueryResultRow, int, error)) *MockExecutorCloser_Exec_Call {
+func (_c *MockExecutorCloser_Exec_Call) RunAndReturn(run func(context.Context, models.Query) (models.RowSet, int, error)) *MockExecutorCloser_Exec_Call {
 	_c.Call.Return(run)
 	return _c
 }

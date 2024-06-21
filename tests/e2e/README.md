@@ -54,20 +54,20 @@ Memory used by client per benchmark iteration in KB, less is better.
 
 | Benchmark | Iterations | Time (ns/op) | Memory (B/op) | Allocations (allocs/op) |
 |----|----|----|----|----|
-| BenchmarkQoordinatorInsert_SingleThread_100rows-8          | 16 |   74541024 |   723079 |   8011 |
-| BenchmarkQoordinatorInsert_MultiThread_100rows-8           | 51 |   19699961 |   844090 |   8616 |
-| BenchmarkQoordinatorSelect_SingleThread_10rows_100repeat-8 |  8 |  127185180 |  9192221 | 123349 |
-| BenchmarkQoordinatorSelect_MultiThread_10rows_100repeat-8  | 20 |   80436158 |  9797702 | 123547 |
-| BenchmarkQoordinatorSelect_SingleThread_100rows_10repeat-8 | 13 |   89617775 |  7055725 | 110168 |
-| BenchmarkQoordinatorSelect_MultiThread_100rows_10repeat-8  | 21 |   55155336 |  7129276 | 110171 |
+| BenchmarkQoordinatorInsert_SingleThread_100rows-8          | 14 |   76588191 |   731674 |   8015 |
+| BenchmarkQoordinatorInsert_MultiThread_100rows-8           | 55 |   23408627 |   851534 |   8667 |
+| BenchmarkQoordinatorSelect_SingleThread_10rows_100repeat-8 |  8 |  129790946 |  9283941 | 123349 |
+| BenchmarkQoordinatorSelect_MultiThread_10rows_100repeat-8  | 20 |   50188410 |  9628030 | 123496 |
+| BenchmarkQoordinatorSelect_SingleThread_100rows_10repeat-8 | 27 |   41080279 |  7032588 | 110159 |
+| BenchmarkQoordinatorSelect_MultiThread_100rows_10repeat-8  | 55 |   23556700 |  7110121 | 110176 |
 
 ### `ncorest`
 
 | Benchmark | Iterations | Time (ns/op) | Memory (B/op) | Allocations (allocs/op) |
 |----|----|----|----|----|
-| BenchmarkNcoRestInsert_SingleThread_100rows-8              | 27 |   42047663 |  1392207 |  15932 |
-| BenchmarkNcoRestInsert_MultiThread_100rows-8               |  1 | 1160987282 |  2223800 |  18377 |
-| BenchmarkNcoRestSelect_SingleThread_10rows_100repeat-8     |  1 | 1084616762 | 11698496 | 126670 |
-| BenchmarkNcoRestSelect_MultiThread_10rows_100repeat-8      |  1 | 1187623425 | 12954056 | 129571 |
-| BenchmarkNcoRestSelect_SingleThread_100rows_10repeat-8     | 10 |  109866266 |  9700274 | 110611 |
-| BenchmarkNcoRestSelect_MultiThread_100rows_10repeat-8      |  1 | 1098730684 |  9875128 | 111479 |
+| BenchmarkNcoRestInsert_SingleThread_100rows-8              | 25 |   46429086 |  1379349 |  15929 |
+| BenchmarkNcoRestInsert_MultiThread_100rows-8               |  1 | 1284330526 |  2253120 |  18655 |
+| BenchmarkNcoRestSelect_SingleThread_10rows_100repeat-8     |  1 | 1072702005 |  8240744 | 126400 |
+| BenchmarkNcoRestSelect_MultiThread_10rows_100repeat-8      |  1 | 1229445891 |  8733448 | 129046 |
+| BenchmarkNcoRestSelect_SingleThread_100rows_10repeat-8     |  9 |  113508944 |  9736496 | 110617 |
+| BenchmarkNcoRestSelect_MultiThread_100rows_10repeat-8      |  1 | 1027271154 |  9904992 | 111432 |

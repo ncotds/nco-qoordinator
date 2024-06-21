@@ -18,7 +18,7 @@ type Connection struct {
 	conn    *tds.Conn
 }
 
-func (c *Connection) Exec(ctx context.Context, query models.Query) (rows []models.QueryResultRow, affectedRows int, err error) {
+func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.RowSet, affectedRows int, err error) {
 	err = c.open(ctx) // ensure that connection exists
 	if err != nil {
 		return rows, affectedRows, err
@@ -35,7 +35,7 @@ func (c *Connection) Exec(ctx context.Context, query models.Query) (rows []model
 
 	select {
 	case <-ctx.Done():
-		return nil, 0, ctx.Err()
+		return rows, 0, ctx.Err()
 	case <-done:
 	}
 
@@ -90,7 +90,7 @@ func (c *Connection) open(ctx context.Context) error {
 	return nil
 }
 
-func parseResults(rst []*tds.Result) (rows []models.QueryResultRow, affectedRows int, err error) {
+func parseResults(rst []*tds.Result) (rows models.RowSet, affectedRows int, err error) {
 	if len(rst) < 2 { // typically, ObjectServer returns 2 results: rowset and metadata
 		err = app.Err(app.ErrCodeUnknown, fmt.Sprintf("unexpected db response: %#v", rst))
 		return rows, affectedRows, err
@@ -103,14 +103,10 @@ func parseResults(rst []*tds.Result) (rows []models.QueryResultRow, affectedRows
 		return rows, meta.RowsAffected, nil
 	}
 
-	rowSet := make([]models.QueryResultRow, 0, len(cursor.Rows))
-	for _, cursorRow := range cursor.Rows {
-		row := make(models.QueryResultRow, len(cursor.Columns))
-		for i, col := range cursor.Columns {
-			row[col.Name] = cursorRow[i]
-		}
-		rowSet = append(rowSet, row)
+	columns := make([]string, 0, len(cursor.Columns))
+	for _, col := range cursor.Columns {
+		columns = append(columns, col.Name)
 	}
 
-	return rowSet, meta.RowsAffected, nil
+	return models.RowSet{Columns: columns, Rows: cursor.Rows}, meta.RowsAffected, nil
 }

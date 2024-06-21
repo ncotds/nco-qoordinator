@@ -64,8 +64,8 @@ func TestConnection_Exec_Select(t *testing.T) {
 	gotRows, gotAffected, gotErr := conn.Exec(context.Background(), models.Query{SQL: stmt})
 
 	var gotRecords []AlertStatusRecord
-	for _, r := range gotRows {
-		gotRecords = append(gotRecords, NewAlertStatusRecordFromMap(r))
+	for _, r := range gotRows.Rows {
+		gotRecords = append(gotRecords, NewAlertStatusRecordFromCursor(gotRows.Columns, r))
 	}
 
 	assert.ElementsMatch(t, existingRows, gotRecords)
@@ -151,7 +151,7 @@ func TestConnection_Exec_Reconnect(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, affected)
-	assert.Len(t, rows, 1)
+	assert.Len(t, rows.Rows, 1)
 }
 
 func TestConnection_Exec_ReconnectCancel(t *testing.T) {

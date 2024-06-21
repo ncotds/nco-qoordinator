@@ -33,6 +33,6 @@ type ExecutorCloser interface {
 	// So, caller can decide: try to reconnect and repeat or not.
 	//
 	// If caller canceled the context, impl can return context.Canceled/context.DeadlineExceeded errors
-	Exec(ctx context.Context, query models.Query) (rows []models.QueryResultRow, affectedRows int, err error)
+	Exec(ctx context.Context, query models.Query) (rows models.RowSet, affectedRows int, err error)
 	io.Closer
 }

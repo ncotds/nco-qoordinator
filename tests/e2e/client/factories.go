@@ -6,7 +6,6 @@ import (
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	"github.com/google/uuid"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 const (
@@ -14,10 +13,6 @@ const (
 	TestAgent       = "TEST_E2E_AGENT"
 	TestAlertsTable = "alerts.status"
 )
-
-func WordFactory() string {
-	return faker.Word()
-}
 
 func SentenceFactory() string {
 	return faker.Sentence()
@@ -51,11 +46,11 @@ type AlertStatusRecord struct {
 	ExtendedAttr    string `faker:"paragraph" db:"ExtendedAttr"`
 }
 
-func NewAlertStatusRecordFromRow(row models.QueryResultRow) AlertStatusRecord {
+func NewAlertStatusRecordFromMap(params map[string]any) AlertStatusRecord {
 	var result = AlertStatusRecord{}
 	recordFields := reflect.VisibleFields(reflect.TypeOf(result))
 	for _, field := range recordFields {
-		if param, ok := row[field.Name]; ok {
+		if param, ok := params[field.Name]; ok {
 			value := reflect.ValueOf(param).Convert(field.Type)
 			reflect.ValueOf(&result).Elem().FieldByName(field.Name).Set(value)
 		}

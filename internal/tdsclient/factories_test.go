@@ -50,12 +50,18 @@ type AlertStatusRecord struct {
 	ExtendedAttr    string `faker:"paragraph" db:"ExtendedAttr"`
 }
 
-func NewAlertStatusRecordFromMap(params map[string]any) AlertStatusRecord {
+func NewAlertStatusRecordFromCursor(cols []string, values []any) AlertStatusRecord {
 	var result = AlertStatusRecord{}
+
+	colIdxByName := make(map[string]int, len(cols))
+	for i, col := range cols {
+		colIdxByName[col] = i
+	}
+
 	recordFields := reflect.VisibleFields(reflect.TypeOf(result))
 	for _, field := range recordFields {
-		if param, ok := params[field.Name]; ok {
-			value := reflect.ValueOf(param).Convert(field.Type)
+		if colIdx, ok := colIdxByName[field.Name]; ok {
+			value := reflect.ValueOf(values[colIdx]).Convert(field.Type)
 			reflect.ValueOf(&result).Elem().FieldByName(field.Name).Set(value)
 		}
 	}

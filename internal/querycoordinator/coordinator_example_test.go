@@ -11,17 +11,19 @@ import (
 	. "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
+var _ Client = (*DemoClient)(nil)
+
 // DemoClient implements Client interface for examples only, use your oun implementation
 type DemoClient struct {
 	DSName  string
-	DBTable []QueryResultRow
+	DBTable RowSet
 }
 
 func (c *DemoClient) Name() string {
 	return c.DSName
 }
 
-func (c *DemoClient) Exec(ctx context.Context, query Query, user Credentials) QueryResult {
+func (c *DemoClient) Exec(ctx context.Context, _ Query, _ Credentials) QueryResult {
 	select {
 	case <-time.After(10 * time.Millisecond):
 		// working hard
@@ -32,14 +34,21 @@ func (c *DemoClient) Exec(ctx context.Context, query Query, user Credentials) Qu
 }
 
 func ExampleQueryCoordinator_Exec() {
-	client1 := &DemoClient{"ds1", []QueryResultRow{
-		{"id": 1, "name": "John"},
-		{"id": 2, "name": "Jane"},
-	}}
+	client1 := &DemoClient{
+		DSName: "ds1",
+		DBTable: RowSet{
+			Columns: []string{"id", "name"},
+			Rows:    [][]any{{1, "John"}, {2, "Jane"}},
+		},
+	}
 
-	client2 := &DemoClient{"ds2", []QueryResultRow{
-		{"id": 1, "name": "Bob"},
-	}}
+	client2 := &DemoClient{
+		DSName: "ds2",
+		DBTable: RowSet{
+			Columns: []string{"id", "name"},
+			Rows:    [][]any{{1, "Bob"}},
+		},
+	}
 
 	coordinator := NewQueryCoordinator(client1, client2)
 
@@ -55,12 +64,12 @@ func ExampleQueryCoordinator_Exec() {
 	resultJson, _ := json.Marshal(result)
 	fmt.Println(string(resultJson))
 	// Output:
-	// {"ds1":{"rowset":[{"id":1,"name":"John"},{"id":2,"name":"Jane"}],"affected_rows":0,"error":null},"ds2":{"rowset":[{"id":1,"name":"Bob"}],"affected_rows":0,"error":null}}
+	// {"ds1":{"row_set":{"Columns":["id","name"],"Rows":[[1,"John"],[2,"Jane"]]},"affected_rows":0,"error":null},"ds2":{"row_set":{"Columns":["id","name"],"Rows":[[1,"Bob"]]},"affected_rows":0,"error":null}}
 }
 
 func ExampleQueryCoordinator_ClientNames() {
-	client1 := &DemoClient{"ds1", []QueryResultRow{}}
-	client2 := &DemoClient{"ds2", []QueryResultRow{}}
+	client1 := &DemoClient{"ds1", RowSet{}}
+	client2 := &DemoClient{"ds2", RowSet{}}
 
 	coordinator := NewQueryCoordinator(client1, client2)
 

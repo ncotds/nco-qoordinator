@@ -15,10 +15,15 @@ type Query struct {
 //   - RowSet useful for queries that fetch data (usually 'select')
 //   - AffectedRows is the number of rows affected by queries that write data (e.g. 'insert')
 type QueryResult struct {
-	RowSet       []QueryResultRow `json:"rowset"`
-	AffectedRows int              `json:"affected_rows"`
-	Error        error            `json:"error"`
+	RowSet       RowSet `json:"row_set"`
+	AffectedRows int    `json:"affected_rows"`
+	Error        error  `json:"error"`
 }
 
-// QueryResultRow represents a single table row as a <column DSName>: <column value> map
-type QueryResultRow map[string]any
+// RowSet represents returned table data:
+//   - Columns - column titles
+//   - Values - list of rows, each as list of column values
+type RowSet struct {
+	Columns []string
+	Rows    [][]any
+}
