@@ -134,14 +134,14 @@ func DoTestCRUD(t *testing.T, client Client) {
 
 func assertResp(
 	t *testing.T,
-	actual map[string]models.QueryResult,
+	actual map[string]QueryResult,
 	expectedRows []AlertStatusRecord,
 	expectedAffected int,
 ) {
 	for k, elem := range actual {
 		actualRows := make([]AlertStatusRecord, 0, len(elem.RowSet))
 		for _, r := range elem.RowSet {
-			actualRows = append(actualRows, NewAlertStatusRecordFromRow(r))
+			actualRows = append(actualRows, NewAlertStatusRecordFromMap(r))
 		}
 		assert.ElementsMatchf(t, expectedRows, actualRows, "elem %s: %v", k, elem)
 		assert.Equalf(t, expectedAffected, elem.AffectedRows, "elem %s: %v", k, elem)

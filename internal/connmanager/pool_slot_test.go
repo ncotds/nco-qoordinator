@@ -15,10 +15,13 @@ import (
 func TestPoolSlot_Exec(t *testing.T) {
 	ctx := context.Background()
 	query := models.Query{SQL: SentenceFactory()}
-	resultRows := []models.QueryResultRow{
-		{WordFactory(): WordFactory(), WordFactory(): SentenceFactory()},
-		{WordFactory(): WordFactory(), WordFactory(): SentenceFactory()},
-		{WordFactory(): WordFactory(), WordFactory(): SentenceFactory()},
+	resultRows := models.RowSet{
+		Columns: []string{WordFactory(), WordFactory()},
+		Rows: [][]any{
+			{WordFactory(), SentenceFactory()},
+			{WordFactory(), SentenceFactory()},
+			{WordFactory(), SentenceFactory()},
+		},
 	}
 
 	type args struct {
@@ -27,7 +30,7 @@ func TestPoolSlot_Exec(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         args
-		wantRows     []models.QueryResultRow
+		wantRows     models.RowSet
 		wantAffected int
 		wantErrIs    error
 	}{
@@ -35,11 +38,11 @@ func TestPoolSlot_Exec(t *testing.T) {
 			"no errors",
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
-				m.EXPECT().Exec(ctx, query).Return(resultRows, len(resultRows), nil).Once()
+				m.EXPECT().Exec(ctx, query).Return(resultRows, len(resultRows.Rows), nil).Once()
 				return m
 			}},
 			resultRows,
-			len(resultRows),
+			len(resultRows.Rows),
 			nil,
 		},
 		{
@@ -47,11 +50,11 @@ func TestPoolSlot_Exec(t *testing.T) {
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
 				m.EXPECT().Exec(ctx, query).
-					Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory())).
+					Return(models.RowSet{}, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory())).
 					Once()
 				return m
 			}},
-			nil,
+			models.RowSet{},
 			0,
 			app.ErrUnavailable,
 		},
@@ -60,10 +63,10 @@ func TestPoolSlot_Exec(t *testing.T) {
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
 				m.EXPECT().Exec(ctx, query).
-					Return(nil, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory())).Once()
+					Return(models.RowSet{}, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory())).Once()
 				return m
 			}},
-			nil,
+			models.RowSet{},
 			0,
 			app.ErrIncorrectOperation,
 		},

@@ -39,16 +39,16 @@ func (n Client) RawSQLPost(
 	_ context.Context,
 	query models.Query,
 	credentials models.Credentials,
-) (map[string]models.QueryResult, error) {
+) (map[string]client.QueryResult, error) {
 	responses := make(chan struct {
 		name string
-		models.QueryResult
+		client.QueryResult
 	})
 
 	for name, url := range n.rawSqlUrls {
 		go func(name, url string) {
 			resp, err := n.doRawSQLReq(url, query, credentials)
-			qResult := models.QueryResult{
+			qResult := client.QueryResult{
 				AffectedRows: resp.Rowset.AffectedRows,
 				RowSet:       resp.Rowset.Rows,
 				Error:        err,
@@ -56,7 +56,7 @@ func (n Client) RawSQLPost(
 
 			responses <- struct {
 				name string
-				models.QueryResult
+				client.QueryResult
 			}{
 				name:        name,
 				QueryResult: qResult,
@@ -64,7 +64,7 @@ func (n Client) RawSQLPost(
 		}(name, url)
 	}
 
-	result := make(map[string]models.QueryResult, len(n.rawSqlUrls))
+	result := make(map[string]client.QueryResult, len(n.rawSqlUrls))
 	for i := 0; i < len(n.rawSqlUrls); i++ {
 		resp := <-responses
 		result[resp.name] = resp.QueryResult
@@ -112,6 +112,6 @@ type SQLFactoryRequest struct {
 type SQLFactoryResponse struct {
 	Rowset struct {
 		AffectedRows int
-		Rows         []models.QueryResultRow `json:"rows"`
+		Rows         []map[string]any `json:"rows"`
 	} `json:"rowset"`
 }

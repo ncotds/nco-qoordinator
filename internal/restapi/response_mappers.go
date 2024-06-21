@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-faster/jx"
 	gs "github.com/ncotds/nco-qoordinator/internal/restapi/gen"
 	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
@@ -26,9 +25,18 @@ func errToResponseErr(in error) (out gs.ErrorResponse) {
 }
 
 func queryResultToResponse(name string, qr models.QueryResult) (gs.RawSQLResponse, error) {
-	rows := make([]gs.RawSQLResponseRowsItem, 0, len(qr.RowSet))
-	for i, row := range qr.RowSet {
-		outRow, err := queryRowToResponseRow(row)
+	if qr.Error != nil {
+		resp := gs.RawSQLResponse{
+			ClusterName: name,
+			Rows:        []gs.RawSQLResponseRowsItem{},
+			Error:       gs.NewOptErrorResponse(errToResponseErr(qr.Error)),
+		}
+		return resp, nil
+	}
+
+	rows := make([]gs.RawSQLResponseRowsItem, 0, len(qr.RowSet.Rows))
+	for i, row := range qr.RowSet.Rows {
+		outRow, err := queryRowToResponseRow(qr.RowSet.Columns, row)
 		if err != nil {
 			err = fmt.Errorf("%w: fail on row %d of %s response", err, i, name)
 			return gs.RawSQLResponse{}, err
@@ -41,21 +49,27 @@ func queryResultToResponse(name string, qr models.QueryResult) (gs.RawSQLRespons
 		Rows:         rows,
 		AffectedRows: qr.AffectedRows,
 	}
-	if qr.Error != nil {
-		resp.Error = gs.NewOptErrorResponse(errToResponseErr(qr.Error))
-	}
 	return resp, nil
 }
 
-func queryRowToResponseRow(in models.QueryResultRow) (map[string]jx.Raw, error) {
-	out := make(map[string]jx.Raw, len(in))
-	for k, v := range in {
-		b, err := json.Marshal(v)
+func queryRowToResponseRow(keys []string, values []any) (gs.RawSQLResponseRowsItem, error) {
+	if len(keys) != len(values) {
+		return nil, fmt.Errorf("keys and values count does not match")
+	}
+
+	out := make(gs.RawSQLResponseRowsItem, len(keys))
+	for i, k := range keys {
+		b, err := marshalValue(values[i])
 		if err != nil {
-			err = fmt.Errorf("%w: cannot marshal key %s value %v", err, k, v)
+			err = fmt.Errorf("%w: cannot marshal key %s value %v", err, k, values[i])
 			return nil, err
 		}
 		out[k] = b
 	}
 	return out, nil
+}
+
+func marshalValue(v any) ([]byte, error) {
+	b, err := json.Marshal(v)
+	return b, err
 }

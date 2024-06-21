@@ -23,7 +23,7 @@ func TestNewServer(t *testing.T) {
 
 	type args struct {
 		clientName string
-		clientRows []models.QueryResultRow
+		clientRows models.RowSet
 		request    *http.Request
 		headers    http.Header
 	}
@@ -38,7 +38,7 @@ func TestNewServer(t *testing.T) {
 			"GET names ok",
 			args{
 				clientName: WordFactory(),
-				clientRows: nil,
+				clientRows: models.RowSet{},
 				request: httptest.NewRequest(
 					http.MethodGet,
 					"/clusterNames",
@@ -57,7 +57,7 @@ func TestNewServer(t *testing.T) {
 			"GET names no request id fail",
 			args{
 				clientName: WordFactory(),
-				clientRows: nil,
+				clientRows: models.RowSet{},
 				request: httptest.NewRequest(
 					http.MethodGet,
 					"/clusterNames",
@@ -90,12 +90,12 @@ func TestNewServer(t *testing.T) {
 			func(t *testing.T, args args, rr *httptest.ResponseRecorder) {
 				var resp []struct {
 					ClusterName string
-					Rows        []models.QueryResultRow
+					Rows        []map[string]any
 				}
 				if assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp)) {
 					assert.Len(t, resp, 1)
 					assert.Equal(t, args.clientName, resp[0].ClusterName)
-					assertQueryRows(t, args.clientRows, resp[0].Rows)
+					assertQueryRows(t, RowSetToMap(args.clientRows), resp[0].Rows)
 				}
 			},
 		},
@@ -203,7 +203,7 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
-func assertQueryRows(t *testing.T, expected, actual []models.QueryResultRow) {
+func assertQueryRows(t *testing.T, expected, actual []map[string]any) {
 	assert.Len(t, actual, len(expected), "query rows")
 	expectedJSONs := make([][]byte, len(expected))
 	for i, elem := range expected {

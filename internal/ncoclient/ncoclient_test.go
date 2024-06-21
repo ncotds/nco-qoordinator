@@ -38,11 +38,7 @@ func TestNcoClient_exec(t *testing.T) {
 				func(t *testing.T) *mocks.MockDBConnector {
 					conn := mocks.NewMockExecutorCloser(t)
 					conn.EXPECT().Exec(anyValueCtx, query).Return(
-						[]models.QueryResultRow{
-							{WordFactory(): WordFactory()},
-							{WordFactory(): WordFactory()},
-							{WordFactory(): WordFactory()},
-						},
+						models.RowSet{Columns: []string{WordFactory()}, Rows: [][]any{{WordFactory()}}},
 						0,
 						nil,
 					).Once()
@@ -77,7 +73,7 @@ func TestNcoClient_exec(t *testing.T) {
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
 					connBad.EXPECT().Exec(anyValueCtx, query).
-						Return(nil, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory()))
+						Return(models.RowSet{}, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory()))
 
 					m := mocks.NewMockDBConnector(t)
 					m.EXPECT().Connect(anyValueCtx, mock.IsType(db.Addr("")), credentials).
@@ -95,16 +91,12 @@ func TestNcoClient_exec(t *testing.T) {
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
 					connBad.EXPECT().Exec(anyValueCtx, query).
-						Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
+						Return(models.RowSet{}, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
 					connBad.EXPECT().Close().Return(nil)
 
 					connOk := mocks.NewMockExecutorCloser(t)
 					connOk.EXPECT().Exec(anyValueCtx, query).Return(
-						[]models.QueryResultRow{
-							{WordFactory(): WordFactory()},
-							{WordFactory(): WordFactory()},
-							{WordFactory(): WordFactory()},
-						},
+						models.RowSet{Columns: []string{WordFactory()}, Rows: [][]any{{WordFactory()}}},
 						0,
 						nil,
 					)
@@ -135,7 +127,7 @@ func TestNcoClient_exec(t *testing.T) {
 				func(t *testing.T) *mocks.MockDBConnector {
 					connBad := mocks.NewMockExecutorCloser(t)
 					connBad.EXPECT().Exec(anyValueCtx, query).
-						Return(nil, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
+						Return(models.RowSet{}, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory()))
 					connBad.EXPECT().Close().Return(nil)
 
 					var failFlag bool
@@ -169,7 +161,7 @@ func TestNcoClient_exec(t *testing.T) {
 
 			got := c.exec(ctx, query, credentials)
 
-			assert.True(t, !tt.wantRows || len(got.RowSet) > 0)
+			assert.True(t, !tt.wantRows || len(got.RowSet.Rows) > 0)
 			assert.ErrorIs(t, got.Error, tt.wantErrIs)
 		})
 	}

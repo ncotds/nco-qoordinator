@@ -11,7 +11,7 @@ import (
 // MockClient implements Client interface for tests only, use your oun implementation
 type MockClient struct {
 	DSName  string
-	DBTable []models.QueryResultRow
+	DBTable models.RowSet
 }
 
 func (c *MockClient) Name() string {
@@ -32,32 +32,56 @@ func WordFactory() string {
 	return faker.Word()
 }
 
-func SentenceFactory() string {
-	return faker.Sentence()
-}
-
 func UUIDFactory() string {
 	return faker.UUIDHyphenated()
 }
 
-func TableRowsFactory(count int) []models.QueryResultRow {
-	rows := make([]models.QueryResultRow, 0, count)
+func TableRowsFactory(count int) models.RowSet {
+	cols := []string{
+		"Identifier",
+		"Node",
+		"NodeAlias",
+		"Agent",
+		"Manager",
+		"AlertGroup",
+		"AlertKey",
+		"Type",
+		"Severity",
+		"Summary",
+		"FirstOccurrence",
+		"URL",
+		"ExtendedAttr",
+	}
+
+	rows := make([][]any, 0, count)
 	for i := 0; i < count; i++ {
-		rows = append(rows, models.QueryResultRow{
-			"Identifier":      faker.UUIDHyphenated(),
-			"Node":            faker.DomainName(),
-			"NodeAlias":       faker.IPv4(),
-			"Agent":           faker.Word(),
-			"Manager":         faker.Word(),
-			"AlertGroup":      faker.Sentence(),
-			"AlertKey":        faker.UUIDDigit(),
-			"Type":            1,
-			"Severity":        5,
-			"Summary":         faker.Sentence(),
-			"FirstOccurrence": faker.UnixTime(),
-			"URL":             faker.URL(),
-			"ExtendedAttr":    faker.Sentence(),
+		rows = append(rows, []any{
+			faker.UUIDHyphenated(),
+			faker.DomainName(),
+			faker.IPv4(),
+			faker.Word(),
+			faker.Word(),
+			faker.Sentence(),
+			faker.UUIDDigit(),
+			1,
+			5,
+			faker.Sentence(),
+			faker.UnixTime(),
+			faker.URL(),
+			faker.Sentence(),
 		})
 	}
-	return rows
+	return models.RowSet{Columns: cols, Rows: rows}
+}
+
+func RowSetToMap(in models.RowSet) []map[string]any {
+	result := make([]map[string]any, len(in.Rows))
+	for _, row := range in.Rows {
+		rowLen := min(len(in.Columns), len(row))
+		rowMap := make(map[string]any, rowLen)
+		for i := 0; i < rowLen; i++ {
+			rowMap[in.Columns[i]] = row[i]
+		}
+	}
+	return result
 }

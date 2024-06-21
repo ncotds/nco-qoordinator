@@ -15,9 +15,9 @@ import (
 	goarch: amd64
 	pkg: github.com/ncotds/nco-qoordinator/internal/restapi
 	cpu: 12th Gen Intel(R) Core(TM) i7-1260P
-	BenchmarkNewServer_rawSQLPost_select_1-8         100      10754015 ns/op       11408 B/op       101 allocs/op
-	BenchmarkNewServer_rawSQLPost_select_100-8       100      12338906 ns/op      724110 B/op      3141 allocs/op
-	BenchmarkNewServer_rawSQLPost_select_10000-8      14      74333625 ns/op    85605211 B/op    305446 allocs/op
+	BenchmarkNewServer_rawSQLPost_select_1-8        100    10594548 ns/op       11577 B/op       101 allocs/op
+	BenchmarkNewServer_rawSQLPost_select_100-8      100    11347381 ns/op      724276 B/op      3141 allocs/op
+	BenchmarkNewServer_rawSQLPost_select_10000-8     15    77095958 ns/op    85613013 B/op    305460 allocs/op
 	PASS
 */
 

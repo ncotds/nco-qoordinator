@@ -32,12 +32,12 @@ func (dc *DemoConnector) Connect(
 
 // DemoConnection implements dbconnector.ExecutorCloser interface for examples only, use your own implementation
 type DemoConnection struct {
-	Data     []models.QueryResultRow
+	Data     models.RowSet
 	Affected int
 	Err      error
 }
 
-func (c *DemoConnection) Exec(ctx context.Context, query models.Query) ([]models.QueryResultRow, int, error) {
+func (c *DemoConnection) Exec(_ context.Context, _ models.Query) (models.RowSet, int, error) {
 	<-time.After(10 * time.Millisecond) // working hard
 	return c.Data, c.Affected, c.Err
 }
@@ -85,10 +85,12 @@ func ExampleNcoClient_Name() {
 }
 
 func ExampleNcoClient_Exec() {
-	demoConn := &DemoConnection{Data: []models.QueryResultRow{
-		{"col1": "data1", "col2": 3},
-		{"col1": "data2", "col2": 5},
-	}}
+	demoConn := &DemoConnection{
+		Data: models.RowSet{
+			Columns: []string{"col1", "col2"},
+			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
+		},
+	}
 
 	conf := nc.ClientConfig{
 		Connector: &DemoConnector{demoConn},
@@ -104,14 +106,16 @@ func ExampleNcoClient_Exec() {
 
 	fmt.Println(result)
 	// Output:
-	// {[map[col1:data1 col2:3] map[col1:data2 col2:5]] 0 <nil>}
+	// {{[col1 col2] [[data1 3] [data2 5]]} 0 <nil>}
 }
 
 func ExampleNcoClient_Exec_cancel() {
-	demoConn := &DemoConnection{Data: []models.QueryResultRow{
-		{"col1": "data1", "col2": 3},
-		{"col1": "data2", "col2": 5},
-	}}
+	demoConn := &DemoConnection{
+		Data: models.RowSet{
+			Columns: []string{"col1", "col2"},
+			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
+		},
+	}
 	conf := nc.ClientConfig{
 		Connector: &DemoConnector{demoConn},
 		SeedList:  []db.Addr{"host1", "host2"},
@@ -127,14 +131,16 @@ func ExampleNcoClient_Exec_cancel() {
 
 	fmt.Println(result)
 	// Output:
-	// {[] 0 context canceled}
+	// {{[] []} 0 context canceled}
 }
 
 func ExampleNcoClient_Close() {
-	demoConn := &DemoConnection{Data: []models.QueryResultRow{
-		{"col1": "data1", "col2": 3},
-		{"col1": "data2", "col2": 5},
-	}}
+	demoConn := &DemoConnection{
+		Data: models.RowSet{
+			Columns: []string{"col1", "col2"},
+			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
+		},
+	}
 
 	conf := nc.ClientConfig{
 		Connector: &DemoConnector{demoConn},
@@ -155,6 +161,6 @@ func ExampleNcoClient_Close() {
 	fmt.Println(name)
 	// Output:
 	// <nil>
-	// {[] 0 ERR_UNKNOWN: pool is closed already}
+	// {{[] []} 0 ERR_UNKNOWN: pool is closed already}
 	// AGG1
 }

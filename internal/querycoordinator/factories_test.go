@@ -47,31 +47,28 @@ func CredentialsFactory() Credentials {
 	return Credentials{UserName: faker.Username(), Password: faker.Password()}
 }
 
-func QueryResultRowSetFactory(rowCount, colCount uint) []QueryResultRow {
-	schema := make(map[string]func() any, colCount)
+func QueryResultRowSetFactory(rowCount, colCount uint) RowSet {
+	schema := make(map[uint]func() any, colCount)
 	for i := uint(0); i < colCount; i++ {
 		randomIdx := FakerRandom.Intn(len(FakerChoice))
-		schema[faker.Word()] = FakerChoice[randomIdx]
+		schema[i] = FakerChoice[randomIdx]
 	}
 
-	fakeRow := make([]QueryResultRow, 0, rowCount)
+	cols := make([]string, 0, len(schema))
+	for range schema {
+		cols = append(cols, faker.Word())
+	}
+
+	rows := make([][]any, 0, rowCount)
 	for i := uint(0); i < rowCount; i++ {
-		fakeRow = append(fakeRow, QueryResultRowFactory(schema))
-	}
-	return fakeRow
-}
-
-func QueryResultRowFactory(schema map[string]func() any) QueryResultRow {
-	if len(schema) == 0 {
-		schema[faker.Word()] = func() any { return faker.Word() }
+		fakeRow := make([]any, 0, len(cols))
+		for j := 0; j < len(cols); j++ {
+			fakeRow = append(fakeRow, schema[i]())
+		}
+		rows = append(rows, fakeRow)
 	}
 
-	fakeRow := make(map[string]any, len(schema))
-	for name, val := range schema {
-		fakeRow[name] = val()
-	}
-
-	return fakeRow
+	return RowSet{Columns: cols, Rows: rows}
 }
 
 func MockClientsFactory(t *testing.T, count int) (names []string, clients []Client) {
