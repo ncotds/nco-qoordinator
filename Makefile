@@ -49,4 +49,4 @@ benchmark-e2e:
 .PHONY: run-ncoq-api
 #? run-ncoq-api: Run cmd/ncoq-api
 run-ncoq-api:
-	go run github.com/vitalyshatskikh/human-readable-json-logging/cmd/pplog go run ./cmd/ncoq-api/. -c $(API_CONFIG_PATH)
+	go run github.com/michurin/human-readable-json-logging/cmd/pplog go run ./cmd/ncoq-api/. -c $(API_CONFIG_PATH)

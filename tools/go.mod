@@ -4,8 +4,8 @@ go 1.22.1
 
 require (
 	github.com/golangci/golangci-lint v1.58.0
+	github.com/michurin/human-readable-json-logging v0.0.0-20240616030539-dd4a67e261f0
 	github.com/vektra/mockery/v2 v2.43.0
-	github.com/vitalyshatskikh/human-readable-json-logging v0.1.1
 	golang.org/x/tools v0.21.0
 	gotest.tools/gotestsum v1.11.0
 )
