@@ -37,8 +37,82 @@ jobs:
       - name: Lint
         run: make lint
 
-  test-unit:
+  test-integration:
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/testing.key
+          chmod 600 ~/.ssh/testing.key
+          cat >>~/.ssh/config <<EOF
+          Host testing
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/testing.key
+            StrictHostKeyChecking no
+          EOF
+        env:
+          SSH_USER: ${{ secrets.TESTING_SSH_USER }}
+          SSH_KEY: ${{ secrets.TESTING_SSH_KEY }}
+          SSH_HOST: ${{ secrets.TESTING_SSH_HOST }}
+
+      - name: Generate temp dir name
+        run: |
+          echo TEMP_DIR=$(mktemp -u) >> $GITHUB_ENV
+
+      - name: Clone sources
+        run: |
+          tar cz --exclude=.git . | ssh testing "mkdir -p $TEMP_DIR && tar xz -C $TEMP_DIR"
+
+      - name: Run testing OMNIbus
+        run: |
+          ssh testing << EOF
+            cd $TEMP_DIR
+            echo -n TESTOMNI= > .env
+            echo "alter user 'root' set password 'testing';" > security.sql
+            echo "go" >> security.sql
+            docker run -e DBINIT_EXTRA="-securityfile /app/security.sql" -v \$(pwd):/app -d ${{ vars.TESTING_OMNIBUS_IMAGE }} >> .env
+            test $? -eq 0 || exit 1
+            source .env
+            container_ip=\$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \$TESTOMNI)
+            echo export TESTTDSCLIENT_ADDRESS=\$container_ip:4100 >> .env
+            echo export TESTTDSCLIENT_USER=root >> .env
+            echo export TESTTDSCLIENT_PASSWORD=testing >> .env
+            cat .env
+          EOF
+
+      - name: Run integration tests
+        run: |
+          ssh testing << EOF
+            cd $TEMP_DIR
+            test -e ~/.profile && source ~/.profile
+            test -e .env && source .env
+            CGO_ENABLED=1 make test-int
+          EOF
+
+      - name: Cleanup
+        if: always()
+        run: |
+          ssh testing << EOF
+            test -e $TEMP_DIR/.env && source $TEMP_DIR/.env && docker rm -f \$TESTOMNI
+            test -e $TEMP_DIR && rm -rf $TEMP_DIR
+          EOF
+
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - test-integration
+    concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: false
 
     steps:
       - name: Check out code
@@ -57,37 +131,90 @@ jobs:
           packages: freetds-dev
           version: 1.0
 
-      - name: Install dependencies
-        run: go mod download -x
+      - name: Set VERSION env
+        run: |
+          version=test-$(git rev-parse --short HEAD)
+          echo VERSION=${version} >> $GITHUB_ENV         
 
-      - name: Tests
-        run: make test-unit
+      - name: Build ncoq-api
+        run: |
+          go build -ldflags="-X 'main.version=$VERSION'" -o ncoq-api ./cmd/ncoq-api/...
+          echo "$TEST_CONFIG" > config.yml
+          echo "$TEST_SYSTEMD_UNIT" > ncoq-api.service
+          go test -c -o ncoq-api-e2e-qoordinator ./tests/e2e/qoordinator
+          tar czvf ncoq-api-${VERSION}.tgz ncoq-api config.yml ncoq-api.service ncoq-api-e2e-qoordinator
+        env:
+          TEST_CONFIG: ${{ vars.TEST_CONFIG_YML }}
+          TEST_SYSTEMD_UNIT: ${{ vars.TEST_SYSTEMD_UNIT }}
 
-  build:
-    runs-on: ubuntu-latest
-    needs:
-      - lint
-      - test-unit
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/testing.key
+          chmod 600 ~/.ssh/testing.key
+          cat >>~/.ssh/config <<EOF
+          Host testing
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/testing.key
+            StrictHostKeyChecking no
+          EOF
+        env:
+          SSH_USER: ${{ secrets.TESTING_SSH_USER }}
+          SSH_KEY: ${{ secrets.TESTING_SSH_KEY }}
+          SSH_HOST: ${{ secrets.TESTING_SSH_HOST }}
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Backup
+        run: |
+          ssh testing << EOF
+            if test ! -e ~/.local/bin/ncoq-api
+            then
+              echo "Nothing to backup, skip"
+            else
+              tar czv -C ~/ -f /tmp/ncoq-api-bkp-before-${VERSION}.tgz \
+                .local/bin/ncoq-api \
+                .config/systemd/user/ncoq-api.service \
+                .config/ncoq-api/config.yml
+              ls -l /tmp/ncoq-api-bkp-before-${VERSION}.tgz
+            fi
+          EOF
 
-      - name: Build
-        run: echo TBD build here
+      - name: Deploy
+        run: |
+          scp ncoq-api-${VERSION}.tgz testing:/tmp/
+          ssh testing << EOF
+            test -e /tmp/ncoq-api-${VERSION} && rm -rf /tmp/ncoq-api-${VERSION}
+            mkdir /tmp/ncoq-api-${VERSION} && cd /tmp/ncoq-api-${VERSION}
+            tar xzv -f /tmp/ncoq-api-${VERSION}.tgz
+            mkdir -p ~/.local/bin && mv ncoq-api ~/.local/bin/
+            mkdir -p ~/.config/systemd/user && mv ncoq-api.service ~/.config/systemd/user/
+            mkdir -p ~/.config/ncoq-api && mv config.yml ~/.config/ncoq-api/
+            systemctl --user daemon-reload
+            systemctl --user enable ncoq-api
+            systemctl --user start ncoq-api
+            systemctl --user status ncoq-api
+            echo export TEST_E2E_LISTEN_HOST=${{ vars.TEST_E2E_LISTEN_HOST }} >> .env
+            echo export TEST_E2E_LISTEN_PORT=${{ vars.TEST_E2E_LISTEN_PORT }} >> .env
+            echo export TEST_E2E_USER=${{ secrets.TEST_E2E_USER }} >> .env
+            echo export TEST_E2E_PASSWORD=${{ secrets.TEST_E2E_PASSWORD }} >> .env
+            source .env
+            ./ncoq-api-e2e-qoordinator -test.v
+          EOF
 
-  deploy-test:
-    runs-on: ubuntu-latest
-    needs:
-      - build
+      - name: Rollback
+        if: failure()
+        run: |
+          ssh testing << EOF
+            tar xzv -C ~/ -f /tmp/ncoq-api-bkp-before-${VERSION}.tgz
+            systemctl --user daemon-reload
+            systemctl --user enable ncoq-api
+            systemctl --user start ncoq-api
+            systemctl --user status ncoq-api
+          EOF
 
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Deploy to test
-        run: echo TBD build here
+      - name: Cleanup
+        if: always()
+        run: |
+          ssh testing << EOF
+            rm -rf /tmp/ncoq-api-${VERSION}
+          EOF

@@ -53,19 +53,24 @@ func (q *Client) RawSQLPost(
 		ClientName   string
 		Rows         []map[string]any
 		AffectedRows int
+		Error        *struct{ Error, Message, Reason string }
 	}
 	err = json.NewDecoder(resp.Body).Decode(&resultPayload)
 	_ = resp.Body.Close()
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse")
+		return nil, fmt.Errorf("cannot parse: %w", err)
 	}
 
 	result := make(map[string]client.QueryResult, len(resultPayload))
 	for _, item := range resultPayload {
-		result[item.ClientName] = client.QueryResult{
+		qResult := client.QueryResult{
 			RowSet:       item.Rows,
 			AffectedRows: item.AffectedRows,
 		}
+		if item.Error != nil {
+			qResult.Error = fmt.Errorf("%+v", item.Error)
+		}
+		result[item.ClientName] = qResult
 	}
 	return result, nil
 }
