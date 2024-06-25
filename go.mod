@@ -44,4 +44,4 @@ require (
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
 
-replace github.com/minus5/gofreetds v0.0.0-20200826115934-6705a38c49ca => github.com/vitalyshatskikh/gofreetds v0.1.1
+replace github.com/minus5/gofreetds v0.0.0-20200826115934-6705a38c49ca => github.com/ncotds/gofreetds v0.1.1
