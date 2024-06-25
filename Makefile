@@ -23,7 +23,7 @@ test-int:
 .PHONY: test-e2e
 #? test-e2e: Run the E2E tests
 test-e2e:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -tags=integration -coverprofile=coverage.txt -covermode atomic -race ./tests/e2e/...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) -- -race ./tests/e2e/...
 
 .PHONY: lint
 #? lint: Run golangci-lint

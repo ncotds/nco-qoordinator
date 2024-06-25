@@ -21,11 +21,15 @@ var (
 	TestConfig = config.Config{
 		LogLevel: "ERROR",
 		HTTPServer: config.HTTPServerConfig{
-			Listen: "localhost" + func() string {
-				if port := os.Getenv(TestEnvPrefix + "_LISTEN_PORT"); port != "" {
-					return ":" + port
+			Listen: func() string {
+				listen := "localhost"
+				if addr := os.Getenv(TestEnvPrefix + "_LISTEN_HOST"); addr != "" {
+					listen = addr
 				}
-				return ""
+				if port := os.Getenv(TestEnvPrefix + "_LISTEN_PORT"); port != "" {
+					return listen + ":" + port
+				}
+				return listen
 			}(),
 		},
 		OMNIbus: config.OMNIbus{
