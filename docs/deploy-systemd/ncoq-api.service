@@ -1,0 +1,10 @@
+[Unit]
+Description=Ncoq API
+After=network.target
+
+[Service]
+ExecStart=%h/.local/bin/ncoq-api -c %h/.config/ncoq-api/config.yml
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
