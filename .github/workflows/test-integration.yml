@@ -1,20 +1,22 @@
 ---
-name: PR check code of tdsclient implementation
+name: Run integration tests
 
 on:
-  pull_request:
-    branches:
-      - '*'
-    paths:
-      - 'internal/tdsclient/**'
+  workflow_call:
+    secrets:
+      TESTING_SSH_USER:
+        required: true
+      TESTING_SSH_KEY:
+        required: true
+      TESTING_SSH_HOST:
+        required: true
 
 jobs:
   test-integration:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           
@@ -88,27 +90,3 @@ jobs:
             test -e $TEMP_DIR/.env && source $TEMP_DIR/.env && docker rm -f \$TESTOMNI
             test -e $TEMP_DIR && rm -rf $TEMP_DIR
           EOF
-
-  test-publish-results:
-    runs-on: ubuntu-latest
-    needs: test-integration
-    if: ${{ always() }}
-
-    permissions:
-      contents: read
-      issues: read
-      checks: write
-      pull-requests: write
-
-    steps:
-      - name: Download reports
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-integration
-
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: |
-            coverage*.xml
-          

@@ -6,12 +6,12 @@ on:
     types:
       - published
 
-env:
-  GO_VERSION: '1.22'
-
 concurrency:
   group: build-release-assets
   cancel-in-progress: false
+
+env:
+  GO_VERSION: '1.22'
 
 jobs:
   build-ncoq-api-binaries:
@@ -30,10 +30,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: 'go.mod'
 
       - name: Install os packages
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -47,11 +46,11 @@ jobs:
       - name: Build ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
           dist_dir=ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
-          mkdir \$dist_dir
-          go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o \$dist_dir/ncoq-api ./cmd/ncoq-api/...
-          cp config/example.yml \$dist_dir/config.yml
-          cp docs/deploy-systemd/* \$dist_dir/
-          tar czvf ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz \$dist_dir
+          mkdir $dist_dir
+          go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o $dist_dir/ncoq-api ./cmd/ncoq-api/...
+          cp config/example.yml $dist_dir/config.yml
+          cp docs/deploy-systemd/* $dist_dir/
+          tar czvf ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz $dist_dir
           ls -lh ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz
 
       - name: Upload release assets
