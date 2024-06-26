@@ -314,7 +314,7 @@ func TestPool_Close_WaitAllReleased(t *testing.T) {
 	var closeErr error
 	go func() {
 		closeErr = pool.Close()
-		done <- struct{}{}
+		close(done)
 	}()
 
 	select {

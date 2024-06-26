@@ -31,6 +31,29 @@ func TestConnection_Close(t *testing.T) {
 	assert.NoError(t, conn.Close(), "second close")
 }
 
+func TestConnection_Close_Race(t *testing.T) {
+	ctx := context.Background()
+	credentials := models.Credentials{TestConfig.User, TestConfig.Password}
+
+	client := &tdsclient.TDSConnector{TestConnLabel, TestConnTimeoutSec}
+	conn, err := client.Connect(ctx, TestConfig.Address, credentials)
+	require.NoError(t, err, "cannot establish connection")
+
+	errs := make(chan error, 5)
+	for i := 0; i < cap(errs); i++ {
+		go func() {
+			errs <- conn.Close()
+		}()
+	}
+	var errCnt int
+	for i := 0; i < cap(errs); i++ {
+		if e := <-errs; e != nil {
+			errCnt++
+		}
+	}
+	assert.Greater(t, errCnt, 0, "expected a few goroutines failed")
+}
+
 func TestConnection_Exec_Insert(t *testing.T) {
 	conn, _ := setUpTest(t, 0)
 	defer tearDownTest(t, conn)
@@ -166,6 +189,35 @@ func TestConnection_Exec_ReconnectCancel(t *testing.T) {
 	_, _, err = conn.Exec(ctx, models.Query{SQL: "describe status"})
 
 	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestConnection_Exec_Race(t *testing.T) {
+	conn, existingRows := setUpTest(t, 3)
+	defer tearDownTest(t, conn)
+
+	var existingIds []interface{}
+	for _, r := range existingRows {
+		existingIds = append(existingIds, r.Identifier)
+	}
+	stmt, _, _ := NcoSql.From(TestAlertsTable).
+		Select(&AlertStatusRecord{}).
+		Where(goqu.C("Identifier").In(existingIds...)).
+		ToSQL()
+
+	errs := make(chan error, 5)
+	for i := 0; i < cap(errs); i++ {
+		go func() {
+			_, _, err := conn.Exec(context.Background(), models.Query{SQL: stmt})
+			errs <- err
+		}()
+	}
+	var errCnt int
+	for i := 0; i < cap(errs); i++ {
+		if e := <-errs; e != nil {
+			errCnt++
+		}
+	}
+	assert.Greater(t, errCnt, 0, "expected a few goroutines failed")
 }
 
 func setUpTest(t *testing.T, rowsCount int) (conn db.ExecutorCloser, rows []AlertStatusRecord) {

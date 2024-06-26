@@ -2,8 +2,10 @@ package tdsclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	tds "github.com/minus5/gofreetds"
 	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
@@ -11,14 +13,26 @@ import (
 	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
-var _ db.ExecutorCloser = (*Connection)(nil)
+var (
+	_ db.ExecutorCloser = (*Connection)(nil)
+
+	// ErrConnectionInUse returned if caller tries to use Connection concurrently,
+	// that is not possible with TDS protocol 'one-query-at-a-time' limitation (by design)
+	ErrConnectionInUse = errors.New("connection in use")
+)
 
 type Connection struct {
 	connStr string
 	conn    *tds.Conn
+	inUse   atomic.Bool
 }
 
 func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.RowSet, affectedRows int, err error) {
+	if !c.inUse.CompareAndSwap(false, true) {
+		return rows, affectedRows, ErrConnectionInUse
+	}
+	defer c.inUse.Store(false)
+
 	err = c.open(ctx) // ensure that connection exists
 	if err != nil {
 		return rows, affectedRows, err
@@ -30,7 +44,7 @@ func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.
 
 	go func() {
 		rst, execErr = c.conn.Exec(query.SQL)
-		done <- struct{}{}
+		close(done)
 	}()
 
 	select {
@@ -52,10 +66,16 @@ func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.
 }
 
 func (c *Connection) Close() error {
+	if !c.inUse.CompareAndSwap(false, true) {
+		return ErrConnectionInUse
+	}
+
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
 	}
+
+	c.inUse.Store(false)
 	return nil
 }
 
@@ -73,7 +93,7 @@ func (c *Connection) open(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		conn, err = tds.NewConn(c.connStr)
-		done <- struct{}{}
+		close(done)
 	}()
 
 	select {
