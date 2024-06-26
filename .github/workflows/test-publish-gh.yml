@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  test-publish-report:
+  test-publish-gh:
     runs-on: ubuntu-latest
 
     permissions:

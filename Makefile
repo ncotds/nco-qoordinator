@@ -13,12 +13,14 @@ test: test-unit test-int
 .PHONY: test-unit
 #? test-unit: Run the unit tests
 test-unit:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -coverprofile=coverage.txt -covermode atomic -race ./internal/... ./pkg/... ./cmd/...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage-unit.xml --jsonfile=coverage-unit.json -- \
+ 		-coverprofile=coverage-unit.txt -covermode atomic -race  ./pkg/... ./cmd/... `go list ./internal/... | grep -v internal/tdsclient`
 
 .PHONY: test-int
 #? test-unit: Run the integration tests
 test-int:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage.xml -- -tags=integration -coverprofile=coverage.txt -covermode atomic -race ./internal/tdsclient/.
+	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage-int.xml --jsonfile=coverage-int.json -- \
+ 		-tags=integration -coverprofile=coverage-int.txt -covermode atomic -race ./internal/tdsclient/.
 
 .PHONY: test-e2e
 #? test-e2e: Run the E2E tests
