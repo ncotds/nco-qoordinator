@@ -1,9 +1,16 @@
 # NC OMNIbus ObjectServer Query Coordinator #
 
-HTTP-API to proxy requests to one or more "OMNIbus Object Server" instances and collects all results. 
+*"OMNIbus Object Server" - component of IBM Netcool stack, in-memory database to store alerts data*
 
-"OMNIbus Object Server" - component of IBM Netcool stack, in-memory database to store alerts data
+HTTP-API server to proxy requests to one or more OMNIbus ObjectServer instances and collects all results. 
 
+The application was created to address a specific need:
+in environments with multiple shards of the OMNIbus database (several HA clusters where alerts are distributed), 
+third-party applications require a solution to seamlessly access and update alert data across all shards.
+
+Additionally, this application proves beneficial even in scenarios with a single HA cluster. 
+It supports multiple third-party applications by allowing them to interact with alerts consistently, 
+eliminating the need to locate a suitable OMNIbus database driver and manage failover scenarios.
 
 ## Installation
 
@@ -13,7 +20,9 @@ You can run NCO-Qoordinator API server:
 
 ## Usage
 
-#### NCO-Qoordinator API
+### NCO-Qoordinator API
+
+#### Request examples
 
 * run SQL-statement on all clusters
   ```shell
@@ -102,6 +111,36 @@ You can run NCO-Qoordinator API server:
     "AGG2"
   ]
   ```
+  
+#### Connection pool
+
+The API server opens connections to OMNIbus as needed,
+credentials from the request authorization header are used for login.
+
+After the request is completed, the connection is returned to the pool. 
+The maximum number of simultaneously open connections is set in the [configuration](config/example.yml).
+
+A separate pool of connections is created for each OMNIbus cluster.
+
+If the maximum number of connections has been reached, but to complete the request 
+it is necessary to open a new one for the current user, the `ncoq-api` server will close 
+the oldest unused connection in the pool. 
+
+If all connections are used, an error will be returned
+
+#### Failover, failback and load balancing
+
+The [configuration](config/example.yml) allows you to specify several instances for each OMNIbus cluster, 
+in case of failure, the server will try to connect to another instance.
+
+There are two strategies for selecting an OMNIbus instance to reconnect:
+1) Random failover (`random_fail_over: true`) - the server will select any of the instances 
+   except the current one. If it is unavailable, it will try all options one by one 
+   until successful connection. Will be useful for OMNIbus Display level
+2) Failback (`fail_back: true, fail_back_delay: 300s`) - the server tries to connect to 
+   the next OMNIbus instance from the list, and if the `fail_back_delay` interval has expired, 
+   it tries turn back to the main one (the first one in the list). 
+   Useful for Aggregation level
 
 ## Versioning
 
