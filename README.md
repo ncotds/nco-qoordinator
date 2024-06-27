@@ -1,6 +1,11 @@
 # NC OMNIbus ObjectServer Query Coordinator #
 
-*"OMNIbus Object Server" - component of IBM Netcool stack, in-memory database to store alerts data*
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ncotds_nco-qoordinator&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ncotds_nco-qoordinator)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ncotds_nco-qoordinator&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ncotds_nco-qoordinator)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=ncotds_nco-qoordinator&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=ncotds_nco-qoordinator)
+[![Build](https://github.com/ncotds/nco-qoordinator/actions/workflows/build-release-assets.yml/badge.svg)](https://github.com/ncotds/nco-qoordinator/actions/workflows/build-release-assets.yml)
+
+> *"OMNIbus Object Server" - component of IBM Netcool stack, in-memory database to store alerts data*
 
 HTTP-API server to proxy requests to one or more OMNIbus ObjectServer instances and collects all results. 
 
@@ -165,7 +170,10 @@ Prerequsites:
 Setup dev environment:
 
 * clone repo and go to the project's root
-* setup OMNIbus - TODO
+* setup OMNIbus
+  (if you prefer docker, 
+   see the [repo with Dockerfiles for Netcool](https://github.com/juliusloman/docker-omnibus)
+   and example [docker-compose file](tests/docker-compose-omni.yml))
 * install tools and enable pre commit hooks:
   ```
   go mod download -x 

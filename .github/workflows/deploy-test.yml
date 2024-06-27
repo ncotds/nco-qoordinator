@@ -21,6 +21,16 @@ jobs:
       TESTING_SSH_KEY: ${{ secrets.TESTING_SSH_KEY }}
       TESTING_SSH_HOST: ${{ secrets.TESTING_SSH_HOST }}
 
+  test-publish-sonar:
+    uses: ./.github/workflows/test-publish-sonar.yml
+    needs:
+      - lint
+      - test-unit
+      - test-integration
+    secrets:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
   deploy-test:
     runs-on: ubuntu-latest
     needs:

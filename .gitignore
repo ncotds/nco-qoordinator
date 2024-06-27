@@ -32,9 +32,10 @@ dist/
 __debug_bin
 docker-compose.yml
 docker-compose.yaml
-coverage.out
-coverage.txt
-coverage.xml
+coverage*.out
+coverage*.txt
+coverage*.xml
+coverage*.json
 
 ### My application specific ###
 status.json

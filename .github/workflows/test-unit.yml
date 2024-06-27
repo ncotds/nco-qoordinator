@@ -35,4 +35,4 @@ jobs:
         if: always()
         with:
           name: coverage-unit
-          path: coverage.xml
+          path: coverage-unit.*

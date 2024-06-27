@@ -74,14 +74,14 @@ jobs:
       - name: Fetch coverage report
         if: always()
         run: |
-          scp testing:$TEMP_DIR/coverage.xml ./
+          scp testing:$TEMP_DIR/coverage-int* ./
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-integration
-          path: coverage.xml
+          path: coverage-int.*
 
       - name: Cleanup
         if: always()
