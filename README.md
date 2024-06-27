@@ -13,6 +13,8 @@ It supports multiple third-party applications by allowing them to interact with 
 eliminating the need to locate a suitable OMNIbus database driver and manage failover scenarios.
 
 ## Installation
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fncotds%2Fnco-qoordinator.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fncotds%2Fnco-qoordinator?ref=badge_shield)
+
 
 You can run NCO-Qoordinator API server:
 * [as docker container](docs/deploy-docker/README.md)
@@ -180,3 +182,6 @@ Setup dev environment:
   cp config/example.yml local.yml  # set actual values
   make run-ncoq-api
   ```
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fncotds%2Fnco-qoordinator.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fncotds%2Fnco-qoordinator?ref=badge_large)
