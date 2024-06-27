@@ -176,7 +176,7 @@ Setup dev environment:
    and example [docker-compose file](tests/docker-compose-omni.yml))
 * install tools and enable pre commit hooks:
   ```
-  go mod download -x 
+  make setup-tools 
   pre-commit install
   ```
 * run tests:

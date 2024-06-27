@@ -41,7 +41,7 @@ jobs:
           version: 1.0
 
       - name: Install dependencies
-        run: go mod download -x
+        run: make setup-tools
 
       - name: Build ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
