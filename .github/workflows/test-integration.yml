@@ -68,6 +68,7 @@ jobs:
             cd $TEMP_DIR
             test -e ~/.profile && source ~/.profile
             test -e .env && source .env
+            make setup-tools
             CGO_ENABLED=1 make test-int
           EOF
 

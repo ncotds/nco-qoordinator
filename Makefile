@@ -1,10 +1,16 @@
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 
-GOTESTSUM_CMD=go run gotest.tools/gotestsum
-GOLANGCI_LINT_CMD=go run github.com/golangci/golangci-lint/cmd/golangci-lint
-
 API_CONFIG_PATH=$(shell pwd)/local.yml
+
+.PHONY: setup-tools
+#? setup-tools: Install dev tools
+setup-tools:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.58.0
+	go install github.com/michurin/human-readable-json-logging/cmd/pplog@v0.0.0-20240616030539-dd4a67e261f0
+	go install github.com/vektra/mockery/v2@v2.43.0
+	go install golang.org/x/tools/cmd/goimports@v0.21.0
+	go install gotest.tools/gotestsum@v1.11.0
 
 .PHONY: test
 #? test: Run the unit and integration tests
@@ -13,19 +19,19 @@ test: test-unit test-int
 .PHONY: test-unit
 #? test-unit: Run the unit tests
 test-unit:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage-unit.xml --jsonfile=coverage-unit.json -- \
+	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum --junitfile=coverage-unit.xml --jsonfile=coverage-unit.json -- \
  		-coverprofile=coverage-unit.txt -covermode atomic -race  ./pkg/... ./cmd/... `go list ./internal/... | grep -v internal/tdsclient`
 
 .PHONY: test-int
 #? test-unit: Run the integration tests
 test-int:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) --junitfile=coverage-int.xml --jsonfile=coverage-int.json -- \
+	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum --junitfile=coverage-int.xml --jsonfile=coverage-int.json -- \
  		-tags=integration -coverprofile=coverage-int.txt -covermode atomic -race ./internal/tdsclient/.
 
 .PHONY: test-e2e
 #? test-e2e: Run the E2E tests
 test-e2e:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOTESTSUM_CMD) -- -race ./tests/e2e/...
+	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum -- -race ./tests/e2e/...
 
 .PHONY: fmt
 #? fmt: Run gofmt
@@ -35,7 +41,7 @@ fmt:
 .PHONY: lint
 #? lint: Run golangci-lint
 lint:
-	$(GOLANGCI_LINT_CMD) run ./...
+	golangci-lint run ./...
 
 .PHONY: generate
 #? generate: Run go generate

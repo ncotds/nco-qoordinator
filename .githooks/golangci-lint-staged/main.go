@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	golangciLintArgs    = []string{"run", "github.com/golangci/golangci-lint/cmd/golangci-lint", "run"}
+	golangciLintArgs    = []string{"run"}
 	gitGetStagedCmdArgs = []string{"diff-index", "--ignore-submodules", "--no-color", "--no-ext-diff", "--name-only", "HEAD", "--"}
 )
 
@@ -32,7 +32,7 @@ func main() {
 	golangciLintArgs = append(golangciLintArgs, getPkgNames(fileNames)...)
 	fmt.Printf("DEBUG %v\n", golangciLintArgs)
 
-	out, err := exec.Command("go", golangciLintArgs...).CombinedOutput()
+	out, err := exec.Command("golangci-lint", golangciLintArgs...).CombinedOutput()
 	fmt.Printf("%s\n", out)
 	exitOnErr(err)
 }
