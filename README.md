@@ -155,7 +155,7 @@ For the versions available, see the [tags on this repository](https://github.com
 
 ## TODO
 
-- [ ] Try to switch from [freetds wrapper](https://github.com/minus5/gofreetds) to the Go-native driver
+- [x] ~~Try to switch from [freetds wrapper](https://github.com/minus5/gofreetds) to the Go-native driver~~
 - [ ] Implement cli tool to run queries from terminal
 
 ## Developing
@@ -165,7 +165,6 @@ Prerequsites:
 * [go 1.22+](https://go.dev/doc/install)
 * [docker-ce, docker-compose](https://docs.docker.com/engine/install/)
 * [pre-commit tool](https://pre-commit.com/#install)
-* [freetds](https://www.freetds.org/index.html) (freetds-dev package)
 
 Setup dev environment:
 

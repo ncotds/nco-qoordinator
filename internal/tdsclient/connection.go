@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync/atomic"
 
-	tds "github.com/minus5/gofreetds"
+	"github.com/ncotds/go-dblib/tds"
+
 	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/ncotds/nco-qoordinator/pkg/models"
@@ -17,14 +19,23 @@ var (
 	_ db.ExecutorCloser = (*Connection)(nil)
 
 	// ErrConnectionInUse returned if caller tries to use Connection concurrently,
-	// that is not possible with TDS protocol 'one-query-at-a-time' limitation (by design)
+	// that is not possible with TDS protocol 'one-query-at-a-time' limitation:
+	// OMNIbus server does not support multiplexing
 	ErrConnectionInUse = errors.New("connection in use")
+	// ErrQueryFailed means that 'transaction error' message has been received from the server
+	ErrQueryFailed = errors.New("query failed")
+
+	ErrTranNotCompleted = errors.New("transaction completed message did not found")
+	ErrTranFailed       = errors.New("transaction failed")
 )
 
 type Connection struct {
-	connStr string
-	conn    *tds.Conn
-	inUse   atomic.Bool
+	inUse      atomic.Bool
+	conn       *tds.Conn
+	connCancel context.CancelFunc
+	dsn        *tds.Info
+	ch         *tds.Channel
+	appName    string
 }
 
 func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.RowSet, affectedRows int, err error) {
@@ -35,31 +46,25 @@ func (c *Connection) Exec(ctx context.Context, query models.Query) (rows models.
 
 	err = c.open(ctx) // ensure that connection exists
 	if err != nil {
+		return rows, affectedRows, wrapTDSError(err)
+	}
+
+	pkgs, err := c.exec(ctx, query)
+	err = wrapTDSError(err)
+	if errors.Is(err, app.ErrTimeout) {
+		// we cannot predict when the query will be completed
+		// and cannot use this connection until query in progress...
+		// so, force any communication with the server
+		c.connCancel()
+		_ = c.close()
+	}
+	if err != nil {
 		return rows, affectedRows, err
 	}
 
-	var rst []*tds.Result
-	var execErr error
-	done := make(chan struct{})
-
-	go func() {
-		rst, execErr = c.conn.Exec(query.SQL)
-		close(done)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return rows, 0, ctx.Err()
-	case <-done:
-	}
-
-	switch {
-	case c.isConnectionError(execErr):
-		err = app.Err(app.ErrCodeUnavailable, "connection failed", execErr)
-	case execErr != nil:
-		err = app.Err(app.ErrCodeIncorrectOperation, "query failed", execErr)
-	default:
-		rows, affectedRows, err = parseResults(rst)
+	rows, affectedRows, err = parseResults(pkgs)
+	if err != nil {
+		err = app.Err(app.ErrCodeUnknown, err.Error(), errors.Unwrap(err))
 	}
 
 	return rows, affectedRows, err
@@ -69,18 +74,8 @@ func (c *Connection) Close() error {
 	if !c.inUse.CompareAndSwap(false, true) {
 		return ErrConnectionInUse
 	}
-
-	if c.conn != nil {
-		c.conn.Close()
-		c.conn = nil
-	}
-
-	c.inUse.Store(false)
-	return nil
-}
-
-func (c *Connection) isConnectionError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "dbopen error")
+	defer c.inUse.Store(false)
+	return wrapTDSError(c.close())
 }
 
 func (c *Connection) open(ctx context.Context) error {
@@ -88,45 +83,180 @@ func (c *Connection) open(ctx context.Context) error {
 		return nil
 	}
 
-	var conn *tds.Conn
-	var err error
-	done := make(chan struct{})
-	go func() {
-		conn, err = tds.NewConn(c.connStr)
-		close(done)
-	}()
+	connCtx, connCancel := context.WithCancel(context.Background())
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-done:
-	}
-
+	conn, err := tds.NewConn(connCtx, c.dsn)
 	if err != nil {
-		err = app.Err(app.ErrCodeUnavailable, "cannot connect db", err)
+		connCancel()
 		return err
 	}
+
+	// NOTE: OMNIbus does not support multiplexing,
+	// use the main channel for all communications
+	ch, err := conn.NewChannel()
+	if err != nil {
+		connCancel()
+		return err
+	}
+
+	login, err := tds.NewLoginConfig(c.dsn)
+	if err != nil {
+		connCancel()
+		return err
+	}
+	login.AppName = c.appName
+	login.Encrypt = 0
+
+	err = ch.Login(ctx, login)
+	if err != nil {
+		connCancel()
+		return err
+	}
+
 	c.conn = conn
+	c.connCancel = connCancel
+	c.ch = ch
 	return nil
 }
 
-func parseResults(rst []*tds.Result) (rows models.RowSet, affectedRows int, err error) {
-	if len(rst) < 2 { // typically, ObjectServer returns 2 results: rowset and metadata
-		err = app.Err(app.ErrCodeUnknown, fmt.Sprintf("unexpected db response: %#v", rst))
+func (c *Connection) close() error {
+	if c.conn == nil {
+		return nil
+	}
+
+	err := c.conn.Close()
+	if errors.Is(err, context.Canceled) {
+		err = nil
+	}
+
+	c.conn = nil
+	c.connCancel = nil
+	c.ch = nil
+	return err
+}
+
+func (c *Connection) exec(ctx context.Context, query models.Query) ([]tds.Package, error) {
+	pkg := &tds.LanguagePackage{Cmd: query.SQL}
+
+	err := c.ch.SendPackage(ctx, pkg)
+	if err != nil {
+		c.ch.Reset() // clear output queue
+		return nil, err
+	}
+
+	var pkgs []tds.Package
+
+	_, err = c.ch.NextPackageUntil(ctx, true, func(p tds.Package) (bool, error) {
+		pkgs = append(pkgs, p)
+		switch typedP := p.(type) {
+		case *tds.DonePackage:
+			if typedP.Status == tds.TDS_DONE_ERROR {
+				return false, ErrQueryFailed
+			}
+			return typedP.Status == tds.TDS_DONE_FINAL, nil
+		default:
+			return false, nil
+		}
+	})
+
+	return pkgs, err
+}
+
+func wrapTDSError(in error) error {
+	var (
+		err    error
+		eedErr *tds.EEDError
+	)
+	switch {
+	case in == io.EOF:
+		// unwrapped io.EOF is OK, it means server has sent all data
+		// and next has closed the connection
+		err = nil
+	case errors.As(in, &eedErr):
+		reason := make([]error, len(eedErr.EEDPackages))
+		for i, eed := range eedErr.EEDPackages {
+			reason[i] = fmt.Errorf("%d: %s", eed.MsgNumber, eed.Msg)
+		}
+		err = app.Err(app.ErrCodeIncorrectOperation, eedErr.WrappedError.Error(), reason...)
+	case errors.Is(in, ErrQueryFailed):
+		err = app.Err(app.ErrCodeIncorrectOperation, in.Error(), errors.Unwrap(in))
+	case errors.Is(in, context.Canceled), errors.Is(in, context.DeadlineExceeded):
+		err = app.Err(app.ErrCodeTimeout, in.Error(), errors.Unwrap(in))
+	case in != nil:
+		err = app.Err(app.ErrCodeUnavailable, in.Error(), errors.Unwrap(in))
+	}
+	return err
+}
+
+func parseResults(pkgs []tds.Package) (rows models.RowSet, affectedRows int, err error) {
+	affectedRows, err = checkTransactionCompleted(pkgs)
+	if err != nil {
 		return rows, affectedRows, err
 	}
 
-	cursor, meta := rst[0], rst[1]
+	rows = makeRowSet(pkgs, affectedRows)
+	return rows, affectedRows, nil
+}
 
-	if cursor == nil || len(cursor.Columns) == 0 {
-		// response w/o tabledata
-		return rows, meta.RowsAffected, nil
+func checkTransactionCompleted(pkgs []tds.Package) (affectedRows int, err error) { // check from the last to find 'transaction complete' msg
+	var tranCompleted *tds.DonePackage
+	for i := len(pkgs) - 1; i >= 0; i-- {
+		pkg, ok := pkgs[i].(*tds.DonePackage)
+		if ok && pkg.TranState == tds.TDS_TRAN_COMPLETED {
+			tranCompleted = pkg
+			break
+		}
 	}
 
-	columns := make([]string, 0, len(cursor.Columns))
-	for _, col := range cursor.Columns {
-		columns = append(columns, col.Name)
+	if tranCompleted == nil {
+		return affectedRows, ErrTranNotCompleted
 	}
 
-	return models.RowSet{Columns: columns, Rows: cursor.Rows}, meta.RowsAffected, nil
+	affectedRows = int(tranCompleted.Count)
+
+	if tranCompleted.Status == tds.TDS_DONE_ERROR {
+		err = ErrTranFailed
+	}
+	return affectedRows, err
+}
+
+func makeRowSet(pkgs []tds.Package, affectedRows int) models.RowSet {
+	rows := models.RowSet{}
+	rows.Columns = makeCols(pkgs)
+	if rows.Columns == nil {
+		return rows
+	}
+
+	rows.Rows = make([][]any, 0, affectedRows)
+	for _, pkg := range pkgs {
+		rowP, ok := pkg.(*tds.RowPackage)
+		if !ok {
+			continue
+		}
+		row := make([]any, len(rowP.DataFields))
+		for fIdx, field := range rowP.DataFields {
+			val := field.Value()
+			if valStr, ok := val.(string); ok {
+				val = strings.TrimSuffix(valStr, "\x00")
+			}
+			row[fIdx] = val
+		}
+		rows.Rows = append(rows.Rows, row)
+	}
+	return rows
+}
+
+func makeCols(pkgs []tds.Package) []string {
+	var rows []string
+	for i := 0; i < len(pkgs); i++ {
+		rowFmt, ok := pkgs[i].(*tds.RowFmtPackage)
+		if ok {
+			rows = make([]string, 0, len(rowFmt.Fmts))
+			for _, field := range rowFmt.Fmts {
+				rows = append(rows, field.Name())
+			}
+			break
+		}
+	}
+	return rows
 }

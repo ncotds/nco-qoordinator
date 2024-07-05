@@ -5,12 +5,15 @@ package tdsclient_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/doug-martin/goqu/v9"
-	tds "github.com/minus5/gofreetds"
+	"github.com/ncotds/go-dblib/dsn"
+	"github.com/ncotds/go-dblib/tds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -151,9 +154,36 @@ func TestConnection_Exec_ContextCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, _, err := conn.Exec(ctx, models.Query{SQL: "describe status"})
+	_, _, errFirst := conn.Exec(ctx, models.Query{SQL: "describe status"})
+	_, _, errSecond := conn.Exec(context.Background(), models.Query{SQL: "describe status"})
 
-	assert.ErrorIs(t, err, context.Canceled)
+	assert.ErrorIsf(t, errFirst, context.Canceled, "first query not cancelled, reason: %v", errors.Unwrap(errFirst))
+	assert.NoErrorf(t, errSecond, "second query not ok, reason: %v", errors.Unwrap(errSecond))
+}
+
+func TestConnection_Exec_ContextTimeout(t *testing.T) {
+	conn, _ := setUpTest(t, 1000)
+	defer tearDownTest(t, conn)
+
+	selQuery, _, err := NcoSql.From(TestAlertsTable).
+		Select(&AlertStatusRecord{}).
+		Where(goqu.Ex{"Manager": TestManager, "Agent": TestAgent}).
+		ToSQL()
+	require.NoError(t, err, "cannot create test query")
+	selQueryRepeat := strings.Join([]string{
+		selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery,
+		selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery,
+		selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery, selQuery,
+	}, "; ")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	_, _, errFirst := conn.Exec(ctx, models.Query{SQL: selQueryRepeat})
+	_, _, errSecond := conn.Exec(context.Background(), models.Query{SQL: "describe status"})
+
+	assert.ErrorIsf(t, errFirst, context.DeadlineExceeded, "first too long query not cancelled, reason: %v", errors.Unwrap(errFirst))
+	assert.NoErrorf(t, errSecond, "second query not ok, reason: %v", errors.Unwrap(errSecond))
 }
 
 func TestConnection_Exec_Reconnect(t *testing.T) {
@@ -243,13 +273,78 @@ func tearDownTest(t *testing.T, conn db.ExecutorCloser) {
 	require.NoError(t, conn.Close(), "cannot close connection")
 }
 
-func makeConn() (*tds.Conn, error) {
-	connStr := fmt.Sprintf(
-		"user=%s;pwd=%s;host=%s;app=%s;compatibility=%s;tds_version=%s",
-		TestConfig.User, TestConfig.Password, TestConfig.Address,
-		TestConnLabel, TestCompatibilityMode, TestTDSVersion,
-	)
-	return tds.NewConn(connStr)
+type Conn struct {
+	conn *tds.Conn
+	ch   *tds.Channel
+}
+
+func (c *Conn) Exec(stmt string) ([]tds.Package, error) {
+	ctx := context.Background()
+	pkg := &tds.LanguagePackage{Cmd: stmt}
+
+	err := c.ch.SendPackage(ctx, pkg)
+	if err != nil {
+		c.ch.Reset() // clear output queue
+		return nil, err
+	}
+
+	var pkgs []tds.Package
+
+	_, err = c.ch.NextPackageUntil(ctx, true, func(p tds.Package) (bool, error) {
+		pkgs = append(pkgs, p)
+		if typed, ok := p.(*tds.DonePackage); ok && typed.Status == tds.TDS_DONE_FINAL {
+			return true, nil
+		}
+		return false, nil
+	})
+
+	return pkgs, err
+}
+
+func (c *Conn) Close() {
+	_ = c.conn.Close()
+}
+
+func makeConn() (*Conn, error) {
+	host, port, _ := strings.Cut(string(TestConfig.Address), ":")
+	conf := &tds.Info{
+		Info: dsn.Info{
+			Host:     host,
+			Port:     port,
+			Username: TestConfig.User,
+			Password: TestConfig.Password,
+		},
+		Network:                 tdsclient.DefaultConnTransport,
+		PacketReadTimeout:       TestConnTimeoutSec,
+		ChannelPackageQueueSize: tdsclient.TDSRxQueueSize,
+	}
+
+	conn, err := tds.NewConn(context.Background(), conf)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := conn.NewChannel()
+	if err != nil {
+		return nil, err
+	}
+
+	login, err := tds.NewLoginConfig(conf)
+	if err != nil {
+		return nil, err
+	}
+	login.AppName = TestConnLabel
+	login.Encrypt = 0
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestConnTimeoutSec*time.Second)
+	defer cancel()
+
+	err = ch.Login(ctx, login)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Conn{conn: conn, ch: ch}, nil
 }
 
 func insTestRow() (AlertStatusRecord, error) {
@@ -303,20 +398,28 @@ func selTestRows() (rows []AlertStatusRecord, err error) {
 	if err != nil {
 		return nil, err
 	}
-	rst, err := conn.Exec(selQuery)
+	pkgs, err := conn.Exec(selQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	cursor := rst[0]
-	for _, row := range cursor.Rows {
-		record := AlertStatusRecord{}
-		rv := reflect.ValueOf(&record).Elem()
-		for i, col := range cursor.Columns {
-			field := rv.FieldByName(col.Name)
-			field.Set(reflect.ValueOf(row[i]).Convert(field.Type()))
+	for _, pkg := range pkgs {
+		if typed, ok := pkg.(*tds.DonePackage); ok && typed.TranState == tds.TDS_TRAN_COMPLETED {
+			break
 		}
-		rows = append(rows, record)
+		if typed, ok := pkg.(*tds.RowPackage); ok {
+			record := AlertStatusRecord{}
+			rv := reflect.ValueOf(&record).Elem()
+			for _, col := range typed.DataFields {
+				val := col.Value()
+				if valStr, ok := val.(string); ok {
+					val = strings.TrimSuffix(valStr, "\x00")
+				}
+				field := rv.FieldByName(col.Format().Name())
+				field.Set(reflect.ValueOf(val).Convert(field.Type()))
+			}
+			rows = append(rows, record)
+		}
 	}
 
 	return rows, err

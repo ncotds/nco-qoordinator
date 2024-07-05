@@ -54,12 +54,12 @@ Memory used by client per benchmark iteration in KB, less is better.
 
 | Benchmark | Iterations | Time (ns/op) | Memory (B/op) | Allocations (allocs/op) |
 |----|----|----|----|----|
-| BenchmarkQoordinatorInsert_SingleThread_100rows-8          | 14 |   76588191 |   731674 |   8015 |
-| BenchmarkQoordinatorInsert_MultiThread_100rows-8           | 55 |   23408627 |   851534 |   8667 |
-| BenchmarkQoordinatorSelect_SingleThread_10rows_100repeat-8 |  8 |  129790946 |  9283941 | 123349 |
-| BenchmarkQoordinatorSelect_MultiThread_10rows_100repeat-8  | 20 |   50188410 |  9628030 | 123496 |
-| BenchmarkQoordinatorSelect_SingleThread_100rows_10repeat-8 | 27 |   41080279 |  7032588 | 110159 |
-| BenchmarkQoordinatorSelect_MultiThread_100rows_10repeat-8  | 55 |   23556700 |  7110121 | 110176 |
+| BenchmarkQoordinatorInsert_SingleThread_100rows-8           | 18 |   69326887 |   725429 |   8011 |
+| BenchmarkQoordinatorInsert_MultiThread_100rows-8            | 54 |   25002938 |   864115 |   8695 |
+| BenchmarkQoordinatorSelect_SingleThread_10rows_100repeat-8  |  8 |  127838337 |  9084547 | 123338 |
+| BenchmarkQoordinatorSelect_MultiThread_10rows_100repeat-8   | 19 |   53066029 |  9527021 | 123468 |
+| BenchmarkQoordinatorSelect_SingleThread_100rows_10repeat-8  | 26 |   44838879 |  7063819 | 110178 |
+| BenchmarkQoordinatorSelect_MultiThread_100rows_10repeat-8   | 58 |   24688951 |  9741112 | 110085 |
 
 ### `ncorest`
 

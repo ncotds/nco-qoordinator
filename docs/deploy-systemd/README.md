@@ -1,15 +1,5 @@
 ### Running NCO-Qoordinator API as systemd service
 
-#### Prerequisites
-
-Install freetds-dev package using your distribution pkg-manager.
-
-For example:
-```
-# Ubuntu
-apt update && apt install freetds-dev
-```
-
 #### Installation
 
 * download pre-build tgz-archive from [release page](https://github.com/ncotds/nco-qoordinator/releases)
