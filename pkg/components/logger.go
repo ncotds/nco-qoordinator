@@ -5,8 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/ncotds/nco-qoordinator/pkg/app"
@@ -53,28 +51,17 @@ func NewLoggerComponent(conf *config.Config) (*LoggerComponent, error) {
 
 // Run enables DEBUG switching on syscall.SIGUSR1.
 // The second sending of SIGUSR1 will switch back to initial log level
+//
+// NOTE: does not supported on windows...
+// because of missing support for signals (syscall.SIGUSR1)
 func (l *LoggerComponent) Run() error {
-	toggle := make(chan os.Signal, 1)
-	signal.Notify(toggle, syscall.SIGUSR1)
-
-	currentLevel := l.lvl
-	for {
-		select {
-		case <-l.interrupt:
-			return nil
-		case <-toggle:
-			if currentLevel == l.lvl {
-				l.log.SetLevel(slog.LevelDebug)
-				currentLevel = slog.LevelDebug
-			} else {
-				l.log.SetLevel(l.lvl)
-				currentLevel = l.lvl
-			}
-		}
-	}
+	return l.run()
 }
 
 // Shutdown stops listening of SIGUSR1 and closes the target file descriptor
+//
+// NOTE: does not supported on windows...
+// because of missing support for signals (syscall.SIGUSR1)
 func (l *LoggerComponent) Shutdown(timeout time.Duration) error {
 	// need to close log file
 	defer func() {
