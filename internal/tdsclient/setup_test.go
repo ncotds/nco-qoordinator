@@ -13,11 +13,9 @@ import (
 )
 
 const (
-	TestEnvPrefix         = "TESTTDSCLIENT"
-	TestConnTimeoutSec    = 2
-	TestCompatibilityMode = "sybase"
-	TestTDSVersion        = "1.0.0"
-	TestConnLabel         = "tdsclient-testing"
+	TestEnvPrefix      = "TESTTDSCLIENT"
+	TestConnTimeoutSec = 2
+	TestConnLabel      = "tdsclient-testing"
 
 	TestExistingRowsCount = 5
 	TestAlertsTable       = "alerts.status"

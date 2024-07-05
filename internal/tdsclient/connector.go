@@ -2,15 +2,29 @@ package tdsclient
 
 import (
 	"context"
-	"fmt"
+	"strings"
+
+	"github.com/ncotds/go-dblib/dsn"
+	"github.com/ncotds/go-dblib/tds"
 
 	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 const (
-	CompatibilityMode = "sybase"
-	TDSVersion        = "1.0.0" // for better TDS client compatibility
+	DefaultConnHost      = "localhost"
+	DefaultConnPort      = "4100"
+	DefaultConnTransport = "tcp"
+
+	// TDSRxQueueSize is a buffer length for TDS packages receiver.
+	//
+	// To prevent deadlocks, it should be enough to contain one TDS packet
+	// parsed into response packages.
+	//
+	// OMNIbus server returns max 8192-bytes packets,
+	// min response is RowResult with at least 2 bytes (int8 token and 1+ bytes for data).
+	// The worst case is: 8192 / 2 = 4096, 4100 should be enough:)
+	TDSRxQueueSize = 4100
 )
 
 var _ db.DBConnector = (*TDSConnector)(nil)
@@ -25,17 +39,30 @@ func (c *TDSConnector) Connect(
 	addr db.Addr,
 	credentials qc.Credentials,
 ) (conn db.ExecutorCloser, err error) {
-	newConn := &Connection{connStr: c.connStr(addr, credentials)}
+	host, port, _ := strings.Cut(string(addr), ":")
+	if host == "" {
+		host = DefaultConnHost
+	}
+	if port == "" {
+		port = DefaultConnPort
+	}
+	newConn := &Connection{
+		appName: c.AppLabel,
+		dsn: &tds.Info{
+			Info: dsn.Info{
+				Host:     host,
+				Port:     port,
+				Username: credentials.UserName,
+				Password: credentials.Password,
+			},
+			Network:                 DefaultConnTransport,
+			PacketReadTimeout:       int(c.TimeoutSec),
+			ChannelPackageQueueSize: TDSRxQueueSize,
+		},
+	}
 	err = newConn.open(ctx)
 	if err != nil {
-		return nil, err
+		return nil, wrapTDSError(err)
 	}
 	return newConn, nil
-}
-
-func (c *TDSConnector) connStr(addr db.Addr, credentials qc.Credentials) string {
-	return fmt.Sprintf(
-		"host=%s;user=%s;pwd=%s;app=%s;conn_timeout=%d;compatibility=%s;tds_version=%s",
-		addr, credentials.UserName, credentials.Password, c.AppLabel, c.TimeoutSec, CompatibilityMode, TDSVersion,
-	)
 }

@@ -50,12 +50,6 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Install os packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: freetds-dev
-          version: 1.0
-
       - name: Set VERSION env
         run: |
           version=test-$(git rev-parse --short HEAD)
