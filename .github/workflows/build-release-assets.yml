@@ -21,6 +21,7 @@ jobs:
       matrix:
         goos:
           - 'linux'
+          - 'windows'
         goarch:
           - 'amd64'
 
@@ -38,17 +39,49 @@ jobs:
         run: make setup-tools
 
       - name: Build ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          DIST_DIR: ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
         run: |
-          dist_dir=ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
-          mkdir $dist_dir
-          CGO_ENABLED=0 go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o $dist_dir/ncoq-api ./cmd/ncoq-api/...
-          cp config/example.yml $dist_dir/config.yml
-          cp docs/deploy-systemd/* $dist_dir/
-          tar czvf ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz $dist_dir
-          ls -lh ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz
+          mkdir $DIST_DIR
+          CGO_ENABLED=0 go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o $DIST_DIR/ncoq-api ./cmd/ncoq-api/...
+
+      - name: Archive build for Windows
+        if: ${{ matrix.goos == 'windows' }}
+        env:
+          DIST_DIR: ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
+        run: |
+          cp config/example.yml ${DIST_DIR}/config.yml
+          mv $DIST_DIR/ncoq-api ${DIST_DIR}/ncoq-api.exe
+          zip -r ${DIST_DIR}.zip ${DIST_DIR}
+          ls -lh ${DIST_DIR}.zip
+
+      - name: Archive build
+        if: ${{ matrix.goos != 'windows' }}
+        env:
+          GOOS: ${{ matrix.goos }}
+          DIST_DIR: ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
+        run: |
+          cp config/example.yml ${DIST_DIR}/config.yml
+          test $GOOS = "linux" && cp docs/deploy-systemd/* ${DIST_DIR}/
+          tar czvf ${DIST_DIR}.tgz ${DIST_DIR}
+          ls -lh ${DIST_DIR}.tgz
+
+      - name: Upload release assets Windows
+        uses: actions/upload-release-asset@v1
+        if: ${{ matrix.goos == 'windows' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          asset_name: ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          asset_content_type: application/zip
 
       - name: Upload release assets
         uses: actions/upload-release-asset@v1
+        if: ${{ matrix.goos != 'windows' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
