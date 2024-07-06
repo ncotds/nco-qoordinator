@@ -41,7 +41,7 @@ jobs:
         run: |
           dist_dir=ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}
           mkdir $dist_dir
-          go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o $dist_dir/ncoq-api ./cmd/ncoq-api/...
+          CGO_ENABLED=0 go build -ldflags="-s -w -X='main.version=${{ github.ref_name }}'" -o $dist_dir/ncoq-api ./cmd/ncoq-api/...
           cp config/example.yml $dist_dir/config.yml
           cp docs/deploy-systemd/* $dist_dir/
           tar czvf ncoq-api-${{ matrix.goos }}-${{ matrix.goarch }}.tgz $dist_dir

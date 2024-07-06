@@ -57,7 +57,7 @@ jobs:
 
       - name: Build ncoq-api
         run: |
-          go build -ldflags="-X 'main.version=$VERSION'" -o ncoq-api ./cmd/ncoq-api/...
+          CGO_ENABLED=0 go build -ldflags="-X 'main.version=$VERSION'" -o ncoq-api ./cmd/ncoq-api/...
           echo "$TEST_CONFIG" > config.yml
           echo "$TEST_SYSTEMD_UNIT" > ncoq-api.service
           go test -c -o ncoq-api-e2e-qoordinator ./tests/e2e/qoordinator
