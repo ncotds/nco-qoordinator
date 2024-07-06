@@ -24,6 +24,7 @@ type LoggerComponent struct {
 // otherwise - to stdout.
 func NewLoggerComponent(conf *config.Config) (*LoggerComponent, error) {
 	target := os.Stdout
+	var targetCloser io.Closer
 
 	var lvl slog.Level
 	err := lvl.UnmarshalText([]byte(conf.LogLevel))
@@ -33,6 +34,7 @@ func NewLoggerComponent(conf *config.Config) (*LoggerComponent, error) {
 
 	if conf.LogFile != "" {
 		target, err = os.OpenFile(conf.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		targetCloser = target
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +46,7 @@ func NewLoggerComponent(conf *config.Config) (*LoggerComponent, error) {
 	return &LoggerComponent{
 		log:          log,
 		lvl:          lvl,
-		targetCloser: target,
+		targetCloser: targetCloser,
 		interrupt:    make(chan struct{}),
 	}, nil
 }
@@ -65,7 +67,9 @@ func (l *LoggerComponent) Run() error {
 func (l *LoggerComponent) Shutdown(timeout time.Duration) error {
 	// need to close log file
 	defer func() {
-		_ = l.targetCloser.Close()
+		if l.targetCloser != nil {
+			_ = l.targetCloser.Close()
+		}
 	}()
 
 	select {
