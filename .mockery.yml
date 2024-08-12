@@ -7,9 +7,3 @@ packages:
       dir: "{{.InterfaceDir}}/mocks"
     interfaces:
       Client:
-  github.com/ncotds/nco-qoordinator/internal/dbconnector:
-    config:
-      dir: "{{.InterfaceDir}}/mocks"
-    interfaces:
-      ExecutorCloser:
-      DBConnector:

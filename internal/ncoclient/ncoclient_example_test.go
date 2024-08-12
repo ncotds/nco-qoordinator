@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	nc "github.com/ncotds/nco-qoordinator/internal/ncoclient"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 var (
@@ -20,11 +20,7 @@ type DemoConnector struct {
 	Conn *DemoConnection
 }
 
-func (dc *DemoConnector) Connect(
-	ctx context.Context,
-	addr db.Addr,
-	credentials models.Credentials,
-) (conn db.ExecutorCloser, err error) {
+func (dc *DemoConnector) Connect(_ context.Context, _ db.Addr, _ db.Credentials) (conn db.ExecutorCloser, err error) {
 	// working hard
 	<-time.After(10 * time.Millisecond)
 	return dc.Conn, err
@@ -32,12 +28,12 @@ func (dc *DemoConnector) Connect(
 
 // DemoConnection implements dbconnector.ExecutorCloser interface for examples only, use your own implementation
 type DemoConnection struct {
-	Data     models.RowSet
+	Data     db.RowSet
 	Affected int
 	Err      error
 }
 
-func (c *DemoConnection) Exec(_ context.Context, _ models.Query) (models.RowSet, int, error) {
+func (c *DemoConnection) Exec(_ context.Context, _ db.Query) (db.RowSet, int, error) {
 	<-time.After(10 * time.Millisecond) // working hard
 	return c.Data, c.Affected, c.Err
 }
@@ -86,7 +82,7 @@ func ExampleNcoClient_Name() {
 
 func ExampleNcoClient_Exec() {
 	demoConn := &DemoConnection{
-		Data: models.RowSet{
+		Data: db.RowSet{
 			Columns: []string{"col1", "col2"},
 			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
 		},
@@ -99,8 +95,8 @@ func ExampleNcoClient_Exec() {
 	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx := context.Background()
-	query := models.Query{SQL: "select 1"}
-	credentials := models.Credentials{UserName: "someuser", Password: "superpass"}
+	query := db.Query{SQL: "select 1"}
+	credentials := db.Credentials{UserName: "someuser", Password: "superpass"}
 
 	result := client.Exec(ctx, query, credentials)
 
@@ -111,7 +107,7 @@ func ExampleNcoClient_Exec() {
 
 func ExampleNcoClient_Exec_cancel() {
 	demoConn := &DemoConnection{
-		Data: models.RowSet{
+		Data: db.RowSet{
 			Columns: []string{"col1", "col2"},
 			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
 		},
@@ -123,8 +119,8 @@ func ExampleNcoClient_Exec_cancel() {
 	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	query := models.Query{SQL: "select 1"}
-	credentials := models.Credentials{UserName: "someuser", Password: "superpass"}
+	query := db.Query{SQL: "select 1"}
+	credentials := db.Credentials{UserName: "someuser", Password: "superpass"}
 
 	cancel()
 	result := client.Exec(ctx, query, credentials)
@@ -136,7 +132,7 @@ func ExampleNcoClient_Exec_cancel() {
 
 func ExampleNcoClient_Close() {
 	demoConn := &DemoConnection{
-		Data: models.RowSet{
+		Data: db.RowSet{
 			Columns: []string{"col1", "col2"},
 			Rows:    [][]any{{"data1", 3}, {"data2", 5}},
 		},
@@ -149,8 +145,8 @@ func ExampleNcoClient_Close() {
 	client, _ := nc.NewNcoClient("AGG1", conf)
 
 	ctx := context.Background()
-	query := models.Query{SQL: "select 1"}
-	credentials := models.Credentials{UserName: "someuser", Password: "superpass"}
+	query := db.Query{SQL: "select 1"}
+	credentials := db.Credentials{UserName: "someuser", Password: "superpass"}
 
 	errClose := client.Close()
 	result := client.Exec(ctx, query, credentials)

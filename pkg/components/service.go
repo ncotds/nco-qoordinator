@@ -1,10 +1,11 @@
 package components
 
 import (
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
+	tds "github.com/ncotds/nco-lib/tdsclient"
+
 	nc "github.com/ncotds/nco-qoordinator/internal/ncoclient"
 	qc "github.com/ncotds/nco-qoordinator/internal/querycoordinator"
-	tds "github.com/ncotds/nco-qoordinator/internal/tdsclient"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/ncotds/nco-qoordinator/pkg/config"
 )

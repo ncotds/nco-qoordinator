@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 const (
@@ -95,7 +95,7 @@ func NewPool(connector db.DBConnector, seedList []db.Addr, options ...PoolOption
 //
 // If connection not exists yet, tries to acquire free slot and establish the new one.
 // If there are no free slots, tries to find the oldest idle connection and close it
-func (p *Pool) Acquire(ctx context.Context, credentials qc.Credentials) (conn *PoolSlot, err error) {
+func (p *Pool) Acquire(ctx context.Context, credentials db.Credentials) (conn *PoolSlot, err error) {
 	if p.isClosed.Load() {
 		return nil, ErrPoolClosed
 	}
@@ -167,7 +167,7 @@ func (p *Pool) Close() error {
 	return nil
 }
 
-func (p *Pool) newConn(ctx context.Context, credentials qc.Credentials) (slot *PoolSlot, err error) {
+func (p *Pool) newConn(ctx context.Context, credentials db.Credentials) (slot *PoolSlot, err error) {
 	slot, err = p.acquireSlot()
 	if err != nil {
 		return nil, err

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	cm "github.com/ncotds/nco-qoordinator/internal/connmanager"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 var _ db.DBConnector = (*DemoConnector)(nil)
@@ -16,11 +16,7 @@ var _ db.DBConnector = (*DemoConnector)(nil)
 type DemoConnector struct {
 }
 
-func (dc *DemoConnector) Connect(
-	ctx context.Context,
-	addr db.Addr,
-	credentials qc.Credentials,
-) (conn db.ExecutorCloser, err error) {
+func (dc *DemoConnector) Connect(_ context.Context, _ db.Addr, _ db.Credentials) (conn db.ExecutorCloser, err error) {
 	return nil, err
 }
 
@@ -44,7 +40,7 @@ func ExamplePool_Acquire() {
 		[]db.Addr{"host1:4100", "host2:4100", "host3:4100"},
 		cm.WithMaxSize(2),
 	)
-	credentials := qc.Credentials{
+	credentials := db.Credentials{
 		UserName: "someuser",
 		Password: "superpass",
 	}
@@ -68,7 +64,7 @@ func ExamplePool_Release() {
 		[]db.Addr{"host1:4100", "host2:4100", "host3:4100"},
 		cm.WithMaxSize(2),
 	)
-	credentials := qc.Credentials{
+	credentials := db.Credentials{
 		UserName: "someuser",
 		Password: "superpass",
 	}
@@ -90,7 +86,7 @@ func ExamplePool_Drop() {
 		[]db.Addr{"host1:4100", "host2:4100", "host3:4100"},
 		cm.WithMaxSize(2),
 	)
-	credentials := qc.Credentials{
+	credentials := db.Credentials{
 		UserName: "someuser",
 		Password: "superpass",
 	}
@@ -112,7 +108,7 @@ func ExamplePool_Close() {
 		[]db.Addr{"host1:4100", "host2:4100", "host3:4100"},
 		cm.WithMaxSize(2),
 	)
-	credentials := qc.Credentials{
+	credentials := db.Credentials{
 		UserName: "someuser",
 		Password: "superpass",
 	}

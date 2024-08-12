@@ -5,12 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ncotds/nco-qoordinator/pkg/app"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
+	mocks "github.com/ncotds/nco-lib/dbconnector/mocks"
 	"github.com/stretchr/testify/assert"
 
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
-	mocks "github.com/ncotds/nco-qoordinator/internal/dbconnector/mocks"
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 )
 
 func Test_iterSlice(t *testing.T) {
@@ -201,7 +200,7 @@ func Test_poolConnector_connect(t *testing.T) {
 	mockConn := mocks.NewMockExecutorCloser(t)
 	mockErr := app.Err(app.ErrCodeUnavailable, "test")
 	ctx := context.Background()
-	credentials := qc.Credentials{}
+	credentials := db.Credentials{}
 	seedList := SeedListFactory(5)
 
 	type fields struct {

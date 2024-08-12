@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 type QueryResult struct {
@@ -13,5 +13,5 @@ type QueryResult struct {
 }
 
 type Client interface {
-	RawSQLPost(ctx context.Context, query models.Query, credentials models.Credentials) (map[string]QueryResult, error)
+	RawSQLPost(ctx context.Context, query db.Query, credentials db.Credentials) (map[string]QueryResult, error)
 }

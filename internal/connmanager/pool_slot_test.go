@@ -5,17 +5,17 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
-	mocks "github.com/ncotds/nco-qoordinator/internal/dbconnector/mocks"
-	"github.com/ncotds/nco-qoordinator/pkg/app"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
+	mocks "github.com/ncotds/nco-lib/dbconnector/mocks"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 )
 
 func TestPoolSlot_Exec(t *testing.T) {
 	ctx := context.Background()
-	query := models.Query{SQL: SentenceFactory()}
-	resultRows := models.RowSet{
+	query := db.Query{SQL: SentenceFactory()}
+	resultRows := db.RowSet{
 		Columns: []string{WordFactory(), WordFactory()},
 		Rows: [][]any{
 			{WordFactory(), SentenceFactory()},
@@ -30,7 +30,7 @@ func TestPoolSlot_Exec(t *testing.T) {
 	tests := []struct {
 		name         string
 		args         args
-		wantRows     models.RowSet
+		wantRows     db.RowSet
 		wantAffected int
 		wantErrIs    error
 	}{
@@ -50,11 +50,11 @@ func TestPoolSlot_Exec(t *testing.T) {
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
 				m.EXPECT().Exec(ctx, query).
-					Return(models.RowSet{}, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory())).
+					Return(db.RowSet{}, 0, app.Err(app.ErrCodeUnavailable, SentenceFactory())).
 					Once()
 				return m
 			}},
-			models.RowSet{},
+			db.RowSet{},
 			0,
 			app.ErrUnavailable,
 		},
@@ -63,10 +63,10 @@ func TestPoolSlot_Exec(t *testing.T) {
 			args{conn: func(t *testing.T) db.ExecutorCloser {
 				m := mocks.NewMockExecutorCloser(t)
 				m.EXPECT().Exec(ctx, query).
-					Return(models.RowSet{}, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory())).Once()
+					Return(db.RowSet{}, 0, app.Err(app.ErrCodeIncorrectOperation, SentenceFactory())).Once()
 				return m
 			}},
-			models.RowSet{},
+			db.RowSet{},
 			0,
 			app.ErrIncorrectOperation,
 		},
