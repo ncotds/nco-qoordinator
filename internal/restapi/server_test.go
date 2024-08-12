@@ -9,12 +9,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+	"github.com/stretchr/testify/assert"
+
 	qc "github.com/ncotds/nco-qoordinator/internal/querycoordinator"
 	"github.com/ncotds/nco-qoordinator/internal/restapi"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
 	"github.com/ncotds/nco-qoordinator/pkg/app/httpserver"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewServer(t *testing.T) {
@@ -23,7 +24,7 @@ func TestNewServer(t *testing.T) {
 
 	type args struct {
 		clientName string
-		clientRows models.RowSet
+		clientRows db.RowSet
 		request    *http.Request
 		headers    http.Header
 	}
@@ -38,7 +39,7 @@ func TestNewServer(t *testing.T) {
 			"GET names ok",
 			args{
 				clientName: WordFactory(),
-				clientRows: models.RowSet{},
+				clientRows: db.RowSet{},
 				request: httptest.NewRequest(
 					http.MethodGet,
 					"/clusterNames",
@@ -57,7 +58,7 @@ func TestNewServer(t *testing.T) {
 			"GET names no request id fail",
 			args{
 				clientName: WordFactory(),
-				clientRows: models.RowSet{},
+				clientRows: db.RowSet{},
 				request: httptest.NewRequest(
 					http.MethodGet,
 					"/clusterNames",

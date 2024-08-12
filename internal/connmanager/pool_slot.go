@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 // PoolSlot is container which stores concrete DB connection implementation
@@ -22,7 +22,7 @@ type PoolSlot struct {
 }
 
 // Exec makes DB query using underlying DB connection implementation
-func (s *PoolSlot) Exec(ctx context.Context, query models.Query) (rows models.RowSet, affectedRows int, err error) {
+func (s *PoolSlot) Exec(ctx context.Context, query db.Query) (rows db.RowSet, affectedRows int, err error) {
 	tStart := time.Now()
 	rows, affectedRows, err = s.conn.Exec(ctx, query)
 	s.log.DebugContext(ctx, "exec completed", "exec_time", time.Since(tStart).String())

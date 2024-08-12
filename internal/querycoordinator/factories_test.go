@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/go-faker/faker/v4"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	. "github.com/ncotds/nco-qoordinator/internal/querycoordinator"
 	mocks "github.com/ncotds/nco-qoordinator/internal/querycoordinator/mocks"
-	. "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 var (
@@ -39,15 +40,15 @@ func ErrorFactory() error {
 	return errors.New(faker.Sentence())
 }
 
-func QueryFactory() Query {
-	return Query{SQL: faker.Sentence()}
+func QueryFactory() db.Query {
+	return db.Query{SQL: faker.Sentence()}
 }
 
-func CredentialsFactory() Credentials {
-	return Credentials{UserName: faker.Username(), Password: faker.Password()}
+func CredentialsFactory() db.Credentials {
+	return db.Credentials{UserName: faker.Username(), Password: faker.Password()}
 }
 
-func QueryResultRowSetFactory(rowCount, colCount uint) RowSet {
+func QueryResultRowSetFactory(rowCount, colCount uint) db.RowSet {
 	schema := make(map[uint]func() any, colCount)
 	for i := uint(0); i < colCount; i++ {
 		randomIdx := FakerRandom.Intn(len(FakerChoice))
@@ -68,7 +69,7 @@ func QueryResultRowSetFactory(rowCount, colCount uint) RowSet {
 		rows = append(rows, fakeRow)
 	}
 
-	return RowSet{Columns: cols, Rows: rows}
+	return db.RowSet{Columns: cols, Rows: rows}
 }
 
 func MockClientsFactory(t *testing.T, count int) (names []string, clients []Client) {

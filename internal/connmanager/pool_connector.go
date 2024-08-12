@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 var randomizer = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -23,7 +23,7 @@ type poolConnector struct {
 }
 
 // connect provides thread-safe way to open new connection using defined failover strategy
-func (c *poolConnector) connect(ctx context.Context, credentials qc.Credentials) (conn db.ExecutorCloser, err error) {
+func (c *poolConnector) connect(ctx context.Context, credentials db.Credentials) (conn db.ExecutorCloser, err error) {
 	err = app.Err(app.ErrCodeUnavailable, "there is no any connection to try")
 	nextIdx := c.failOverSeedIdx(int(c.currentSeedIdx.Load()), len(c.seedList))
 	for i, addr := range iterSlice(c.seedList, nextIdx) {

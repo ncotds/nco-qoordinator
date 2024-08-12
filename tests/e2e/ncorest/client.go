@@ -8,8 +8,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	"github.com/ncotds/nco-qoordinator/pkg/config"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 	"github.com/ncotds/nco-qoordinator/tests/e2e/client"
 )
 
@@ -37,8 +38,8 @@ func NewClient(conf *config.Config) (client.Client, error) {
 
 func (n Client) RawSQLPost(
 	_ context.Context,
-	query models.Query,
-	credentials models.Credentials,
+	query db.Query,
+	credentials db.Credentials,
 ) (map[string]client.QueryResult, error) {
 	responses := make(chan struct {
 		name string
@@ -75,8 +76,8 @@ func (n Client) RawSQLPost(
 
 func (n Client) doRawSQLReq(
 	url string,
-	query models.Query,
-	credentials models.Credentials,
+	query db.Query,
+	credentials db.Credentials,
 ) (*SQLFactoryResponse, error) {
 	payload, _ := json.Marshal(SQLFactoryRequest{Sqlcmd: query.SQL})
 	req, _ := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payload))

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -27,10 +27,10 @@ type QueryCoordinatorTestSuite struct {
 	suite.Suite
 	ClientsCount int
 
-	fixtureQuery            Query
-	fixtureUser             Credentials
+	fixtureQuery            db.Query
+	fixtureUser             db.Credentials
 	fixtureError            error
-	fixtureExecReturnResult map[string]QueryResult
+	fixtureExecReturnResult map[string]db.QueryResult
 }
 
 func (s *QueryCoordinatorTestSuite) SetupSuite() {
@@ -40,9 +40,9 @@ func (s *QueryCoordinatorTestSuite) SetupSuite() {
 	s.fixtureUser = CredentialsFactory()
 	s.fixtureError = ErrorFactory()
 
-	s.fixtureExecReturnResult = make(map[string]QueryResult, s.ClientsCount)
+	s.fixtureExecReturnResult = make(map[string]db.QueryResult, s.ClientsCount)
 	for i := 0; i < s.ClientsCount; i++ {
-		s.fixtureExecReturnResult[UUIDStringFactory()] = QueryResult{
+		s.fixtureExecReturnResult[UUIDStringFactory()] = db.QueryResult{
 			RowSet:       QueryResultRowSetFactory(10, 10),
 			AffectedRows: IntFactory(),
 		}
@@ -77,7 +77,7 @@ func (s *QueryCoordinatorTestSuite) TestExecOnParticularDataSource() {
 
 	result := coordinator.Exec(context.Background(), s.fixtureQuery, s.fixtureUser, dsName)
 
-	s.Equal(map[string]QueryResult{dsName: s.fixtureExecReturnResult[dsName]}, result)
+	s.Equal(map[string]db.QueryResult{dsName: s.fixtureExecReturnResult[dsName]}, result)
 }
 
 func (s *QueryCoordinatorTestSuite) TestExecOnUnknownDataSource() {
@@ -93,7 +93,7 @@ func (s *QueryCoordinatorTestSuite) TestExecOnUnknownDataSource() {
 
 	result := coordinator.Exec(context.Background(), s.fixtureQuery, s.fixtureUser, dsName)
 
-	s.Equal(map[string]QueryResult{}, result) // unknown DS is skipped
+	s.Equal(map[string]db.QueryResult{}, result) // unknown DS is skipped
 }
 
 func (s *QueryCoordinatorTestSuite) TestExecDataSourceFails() {
@@ -108,7 +108,7 @@ func (s *QueryCoordinatorTestSuite) TestExecDataSourceFails() {
 	failedClient.EXPECT().Name().Return(UUIDStringFactory())
 	failedClient.EXPECT().
 		Exec(mock.Anything, s.fixtureQuery, s.fixtureUser).
-		Return(QueryResult{Error: s.fixtureError})
+		Return(db.QueryResult{Error: s.fixtureError})
 	coordinator := NewQueryCoordinator(failedClient, clients...)
 
 	result := coordinator.Exec(context.Background(), s.fixtureQuery, s.fixtureUser)
@@ -125,7 +125,7 @@ func (s *QueryCoordinatorTestSuite) TestExecAllDataSourcesFails() {
 		client.EXPECT().
 			Exec(mock.Anything, s.fixtureQuery, s.fixtureUser).
 			Maybe().
-			Return(QueryResult{Error: s.fixtureError})
+			Return(db.QueryResult{Error: s.fixtureError})
 		clients = append(clients, client)
 	}
 	coordinator := NewQueryCoordinator(clients[0], clients[1:]...)
@@ -149,9 +149,9 @@ func (s *QueryCoordinatorTestSuite) TestExecCancel() {
 	slowClient := mocks.NewMockClient(s.T())
 	slowClient.EXPECT().Name().Return(UUIDStringFactory())
 	slowClient.On("Exec", mock.Anything, s.fixtureQuery, s.fixtureUser).Return(
-		func(ctx context.Context, query Query, user Credentials) QueryResult {
+		func(ctx context.Context, query db.Query, user db.Credentials) db.QueryResult {
 			time.Sleep(1 * time.Second)
-			return QueryResult{Error: context.DeadlineExceeded}
+			return db.QueryResult{Error: context.DeadlineExceeded}
 		},
 	)
 

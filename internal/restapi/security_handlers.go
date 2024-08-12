@@ -3,9 +3,10 @@ package restapi
 import (
 	"context"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	gs "github.com/ncotds/nco-qoordinator/internal/restapi/gen"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 type ctxKey int
@@ -27,13 +28,13 @@ func (s SecurityHandler) HandleBasicAuth(
 	if t.Username == "" || t.Password == "" {
 		return ctx, app.Err(app.ErrCodeInsufficientPrivileges, "username and password are required")
 	}
-	credentials := qc.Credentials{UserName: t.Username, Password: t.Password}
+	credentials := db.Credentials{UserName: t.Username, Password: t.Password}
 	return context.WithValue(ctx, CtxKeyCredentials, credentials), nil
 }
 
-func GetCredentials(ctx context.Context) qc.Credentials {
-	if cred, ok := ctx.Value(CtxKeyCredentials).(qc.Credentials); ok {
+func GetCredentials(ctx context.Context) db.Credentials {
+	if cred, ok := ctx.Value(CtxKeyCredentials).(db.Credentials); ok {
 		return cred
 	}
-	return qc.Credentials{}
+	return db.Credentials{}
 }

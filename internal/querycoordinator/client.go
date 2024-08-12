@@ -4,12 +4,12 @@ package querycoordinator
 import (
 	"context"
 
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 type Client interface {
 	// Name returns unique DSName of the client
 	Name() string
 	// Exec runs a SQL query against ObjectServer
-	Exec(ctx context.Context, query models.Query, user models.Credentials) models.QueryResult
+	Exec(ctx context.Context, query db.Query, user db.Credentials) db.QueryResult
 }

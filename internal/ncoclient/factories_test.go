@@ -2,7 +2,7 @@ package ncoclient
 
 import (
 	"github.com/go-faker/faker/v4"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 func WordFactory() string {

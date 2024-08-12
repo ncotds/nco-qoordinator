@@ -5,27 +5,27 @@ import (
 	"time"
 
 	"github.com/go-faker/faker/v4"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 // MockClient implements Client interface for tests only, use your oun implementation
 type MockClient struct {
 	DSName  string
-	DBTable models.RowSet
+	DBTable db.RowSet
 }
 
 func (c *MockClient) Name() string {
 	return c.DSName
 }
 
-func (c *MockClient) Exec(ctx context.Context, _ models.Query, _ models.Credentials) models.QueryResult {
+func (c *MockClient) Exec(ctx context.Context, _ db.Query, _ db.Credentials) db.QueryResult {
 	select {
 	case <-time.After(10 * time.Millisecond):
 		// working hard
 	case <-ctx.Done():
-		return models.QueryResult{Error: ctx.Err()}
+		return db.QueryResult{Error: ctx.Err()}
 	}
-	return models.QueryResult{RowSet: c.DBTable, AffectedRows: 0, Error: nil}
+	return db.QueryResult{RowSet: c.DBTable, AffectedRows: 0, Error: nil}
 }
 
 func WordFactory() string {
@@ -36,7 +36,7 @@ func UUIDFactory() string {
 	return faker.UUIDHyphenated()
 }
 
-func TableRowsFactory(count int) models.RowSet {
+func TableRowsFactory(count int) db.RowSet {
 	cols := []string{
 		"Identifier",
 		"Node",
@@ -71,10 +71,10 @@ func TableRowsFactory(count int) models.RowSet {
 			faker.Sentence(),
 		})
 	}
-	return models.RowSet{Columns: cols, Rows: rows}
+	return db.RowSet{Columns: cols, Rows: rows}
 }
 
-func RowSetToMap(in models.RowSet) []map[string]any {
+func RowSetToMap(in db.RowSet) []map[string]any {
 	result := make([]map[string]any, len(in.Rows))
 	for _, row := range in.Rows {
 		rowLen := min(len(in.Columns), len(row))

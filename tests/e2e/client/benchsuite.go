@@ -7,13 +7,13 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/google/uuid"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 func DoBenchmarkInsert(b *testing.B, client Client, rowCount int, concurrency int) {
 	var err error
 	inserts, _, del := makeQueries(rowCount)
-	creds := models.Credentials{UserName: TestUser, Password: TestPassword}
+	creds := db.Credentials{UserName: TestUser, Password: TestPassword}
 
 	b.ResetTimer()
 
@@ -29,7 +29,7 @@ func DoBenchmarkInsert(b *testing.B, client Client, rowCount int, concurrency in
 	}
 
 	b.StopTimer()
-	_, err = client.RawSQLPost(context.Background(), models.Query{SQL: del}, creds)
+	_, err = client.RawSQLPost(context.Background(), db.Query{SQL: del}, creds)
 	if err != nil {
 		b.Fatal("delete fails", err.Error())
 	}
@@ -38,7 +38,7 @@ func DoBenchmarkInsert(b *testing.B, client Client, rowCount int, concurrency in
 func DoBenchmarkSelect(b *testing.B, client Client, rowCount, selCount int, concurrency int) {
 	var err error
 	inserts, sel, del := makeQueries(rowCount)
-	creds := models.Credentials{UserName: TestUser, Password: TestPassword}
+	creds := db.Credentials{UserName: TestUser, Password: TestPassword}
 
 	if err := processQueries(client, inserts, creds); err != nil {
 		b.Fatal("cannot insert test rows")
@@ -63,16 +63,16 @@ func DoBenchmarkSelect(b *testing.B, client Client, rowCount, selCount int, conc
 	}
 
 	b.StopTimer()
-	_, err = client.RawSQLPost(context.Background(), models.Query{SQL: del}, creds)
+	_, err = client.RawSQLPost(context.Background(), db.Query{SQL: del}, creds)
 	if err != nil {
 		b.Fatal("delete fails", err.Error())
 	}
 }
 
-func processQueries(client Client, queries []string, creds models.Credentials) error {
+func processQueries(client Client, queries []string, creds db.Credentials) error {
 	var err error
 	for i := 0; i < len(queries); i++ {
-		_, err = client.RawSQLPost(context.Background(), models.Query{SQL: queries[i]}, creds)
+		_, err = client.RawSQLPost(context.Background(), db.Query{SQL: queries[i]}, creds)
 		if err != nil {
 			return fmt.Errorf("query %d fails: %w", i, err)
 		}
@@ -80,7 +80,7 @@ func processQueries(client Client, queries []string, creds models.Credentials) e
 	return nil
 }
 
-func processQueriesConcurrently(client Client, queries []string, creds models.Credentials, concurrency int) error {
+func processQueriesConcurrently(client Client, queries []string, creds db.Credentials, concurrency int) error {
 	if concurrency < 1 {
 		concurrency = 1
 	}
@@ -90,7 +90,7 @@ func processQueriesConcurrently(client Client, queries []string, creds models.Cr
 	for gIdx := 0; gIdx < concurrency; gIdx++ {
 		go func(offset int) {
 			for i := offset; i < len(queries); i += concurrency {
-				_, err := client.RawSQLPost(context.Background(), models.Query{SQL: queries[i]}, creds)
+				_, err := client.RawSQLPost(context.Background(), db.Query{SQL: queries[i]}, creds)
 				if err != nil {
 					results <- fmt.Errorf("query %d fails: %w", i, err)
 					return
