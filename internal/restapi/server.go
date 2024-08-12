@@ -1,4 +1,4 @@
-//go:generate go run github.com/ogen-go/ogen/cmd/ogen --target gen --package gen --clean ../../docs/openapi/openapi.yml
+//go:generate ogen --target gen --package gen --clean ../../docs/openapi/openapi.yml
 package restapi
 
 import (
