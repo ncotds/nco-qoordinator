@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	gs "github.com/ncotds/nco-qoordinator/internal/restapi/gen"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 func errToResponseErr(in error) (out gs.ErrorResponse) {
@@ -24,7 +25,7 @@ func errToResponseErr(in error) (out gs.ErrorResponse) {
 	return out
 }
 
-func queryResultToResponse(name string, qr models.QueryResult) (gs.RawSQLResponse, error) {
+func queryResultToResponse(name string, qr db.QueryResult) (gs.RawSQLResponse, error) {
 	if qr.Error != nil {
 		resp := gs.RawSQLResponse{
 			ClusterName: name,

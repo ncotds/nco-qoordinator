@@ -5,7 +5,7 @@ package querycoordinator
 import (
 	context "context"
 
-	models "github.com/ncotds/nco-qoordinator/pkg/models"
+	dbconnector "github.com/ncotds/nco-lib/dbconnector"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -23,18 +23,18 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 }
 
 // Exec provides a mock function with given fields: ctx, query, user
-func (_m *MockClient) Exec(ctx context.Context, query models.Query, user models.Credentials) models.QueryResult {
+func (_m *MockClient) Exec(ctx context.Context, query dbconnector.Query, user dbconnector.Credentials) dbconnector.QueryResult {
 	ret := _m.Called(ctx, query, user)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Exec")
 	}
 
-	var r0 models.QueryResult
-	if rf, ok := ret.Get(0).(func(context.Context, models.Query, models.Credentials) models.QueryResult); ok {
+	var r0 dbconnector.QueryResult
+	if rf, ok := ret.Get(0).(func(context.Context, dbconnector.Query, dbconnector.Credentials) dbconnector.QueryResult); ok {
 		r0 = rf(ctx, query, user)
 	} else {
-		r0 = ret.Get(0).(models.QueryResult)
+		r0 = ret.Get(0).(dbconnector.QueryResult)
 	}
 
 	return r0
@@ -47,25 +47,25 @@ type MockClient_Exec_Call struct {
 
 // Exec is a helper method to define mock.On call
 //   - ctx context.Context
-//   - query models.Query
-//   - user models.Credentials
+//   - query dbconnector.Query
+//   - user dbconnector.Credentials
 func (_e *MockClient_Expecter) Exec(ctx interface{}, query interface{}, user interface{}) *MockClient_Exec_Call {
 	return &MockClient_Exec_Call{Call: _e.mock.On("Exec", ctx, query, user)}
 }
 
-func (_c *MockClient_Exec_Call) Run(run func(ctx context.Context, query models.Query, user models.Credentials)) *MockClient_Exec_Call {
+func (_c *MockClient_Exec_Call) Run(run func(ctx context.Context, query dbconnector.Query, user dbconnector.Credentials)) *MockClient_Exec_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(models.Query), args[2].(models.Credentials))
+		run(args[0].(context.Context), args[1].(dbconnector.Query), args[2].(dbconnector.Credentials))
 	})
 	return _c
 }
 
-func (_c *MockClient_Exec_Call) Return(_a0 models.QueryResult) *MockClient_Exec_Call {
+func (_c *MockClient_Exec_Call) Return(_a0 dbconnector.QueryResult) *MockClient_Exec_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockClient_Exec_Call) RunAndReturn(run func(context.Context, models.Query, models.Credentials) models.QueryResult) *MockClient_Exec_Call {
+func (_c *MockClient_Exec_Call) RunAndReturn(run func(context.Context, dbconnector.Query, dbconnector.Credentials) dbconnector.QueryResult) *MockClient_Exec_Call {
 	_c.Call.Return(run)
 	return _c
 }

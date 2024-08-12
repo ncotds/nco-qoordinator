@@ -156,7 +156,6 @@ For the versions available, see the [tags on this repository](https://github.com
 ## TODO
 
 - [x] ~~Try to switch from [freetds wrapper](https://github.com/minus5/gofreetds) to the Go-native driver~~
-- [ ] Implement cli tool to run queries from terminal
 
 ## Developing
 

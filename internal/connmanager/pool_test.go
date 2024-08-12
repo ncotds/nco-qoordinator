@@ -5,15 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ncotds/nco-qoordinator/pkg/app"
-	qc "github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
+	mocks "github.com/ncotds/nco-lib/dbconnector/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	. "github.com/ncotds/nco-qoordinator/internal/connmanager"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
-	mocks "github.com/ncotds/nco-qoordinator/internal/dbconnector/mocks"
+	"github.com/ncotds/nco-qoordinator/pkg/app"
 )
 
 func TestNewPool(t *testing.T) {
@@ -80,7 +79,7 @@ func TestNewPool(t *testing.T) {
 
 func TestPool_Acquire(t *testing.T) {
 	ctx := context.Background()
-	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
+	credentials := db.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 	seedList := SeedListFactory(3)
 	poolMaxSize := 3
 
@@ -144,7 +143,7 @@ func TestPool_Acquire(t *testing.T) {
 					// it is expected that Pool will drop one of them
 					conns := make([]*PoolSlot, poolMaxSize)
 					for i := range conns {
-						c, _ := p.Acquire(ctx, qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()})
+						c, _ := p.Acquire(ctx, db.Credentials{UserName: NameFactory(), Password: SentenceFactory()})
 						conns[i] = c
 					}
 					for _, c := range conns {
@@ -167,7 +166,7 @@ func TestPool_Acquire(t *testing.T) {
 					// fill Pool with random credentials, do not release them
 					// it is expected that Pool cannot drop anyone to acquire new slot
 					for i := 0; i < poolMaxSize; i++ {
-						_, err := p.Acquire(ctx, qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()})
+						_, err := p.Acquire(ctx, db.Credentials{UserName: NameFactory(), Password: SentenceFactory()})
 						require.NoError(t, err)
 					}
 				},
@@ -246,7 +245,7 @@ func TestPool_Close(t *testing.T) {
 					return m
 				},
 				setUp: func(p *Pool) {
-					c, _ := p.Acquire(context.Background(), qc.Credentials{UserName: NameFactory()})
+					c, _ := p.Acquire(context.Background(), db.Credentials{UserName: NameFactory()})
 					require.NoError(t, p.Release(c))
 				},
 			},
@@ -261,7 +260,7 @@ func TestPool_Close(t *testing.T) {
 					return m
 				},
 				setUp: func(p *Pool) {
-					c, _ := p.Acquire(context.Background(), qc.Credentials{UserName: NameFactory()})
+					c, _ := p.Acquire(context.Background(), db.Credentials{UserName: NameFactory()})
 					require.NoError(t, p.Release(c))
 					require.NoError(t, p.Close())
 				},
@@ -275,7 +274,7 @@ func TestPool_Close(t *testing.T) {
 			conn := tt.fields.conn(t)
 			connector := mocks.NewMockDBConnector(t)
 			connector.EXPECT().
-				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(qc.Credentials{})).
+				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(db.Credentials{})).
 				Return(conn, nil).Maybe()
 
 			pool, err := NewPool(connector, SeedListFactory(1))
@@ -294,7 +293,7 @@ func TestPool_Close(t *testing.T) {
 
 func TestPool_Close_WaitAllReleased(t *testing.T) {
 	ctx := context.Background()
-	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
+	credentials := db.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 
 	mockConn := mocks.NewMockExecutorCloser(t)
 	mockConn.EXPECT().Close().Return(nil).Once()
@@ -338,7 +337,7 @@ func TestPool_Close_WaitAllReleased(t *testing.T) {
 
 func TestPool_Drop(t *testing.T) {
 	ctx := context.Background()
-	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
+	credentials := db.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 
 	type fields struct {
 		conn func(t *testing.T) *mocks.MockExecutorCloser
@@ -420,7 +419,7 @@ func TestPool_Drop(t *testing.T) {
 			conn := tt.fields.conn(t)
 			connector := mocks.NewMockDBConnector(t)
 			connector.EXPECT().
-				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(qc.Credentials{})).
+				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(db.Credentials{})).
 				Return(conn, nil).Maybe()
 
 			pool, err := NewPool(connector, SeedListFactory(1))
@@ -438,7 +437,7 @@ func TestPool_Drop(t *testing.T) {
 
 func TestPool_Release(t *testing.T) {
 	ctx := context.Background()
-	credentials := qc.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
+	credentials := db.Credentials{UserName: NameFactory(), Password: SentenceFactory()}
 
 	type fields struct {
 		conn func(t *testing.T) *mocks.MockExecutorCloser
@@ -516,7 +515,7 @@ func TestPool_Release(t *testing.T) {
 			conn := tt.fields.conn(t)
 			connector := mocks.NewMockDBConnector(t)
 			connector.EXPECT().
-				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(qc.Credentials{})).
+				Connect(context.Background(), mock.IsType(db.Addr("")), mock.IsType(db.Credentials{})).
 				Return(conn, nil).Maybe()
 
 			pool, err := NewPool(connector, SeedListFactory(1))

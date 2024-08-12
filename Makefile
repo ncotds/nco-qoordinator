@@ -15,19 +15,13 @@ setup-tools:
 
 .PHONY: test
 #? test: Run the unit and integration tests
-test: test-unit test-int
+test: test-unit
 
 .PHONY: test-unit
 #? test-unit: Run the unit tests
 test-unit:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum --junitfile=coverage-unit.xml --jsonfile=coverage-unit.json -- \
- 		-coverprofile=coverage-unit.txt -covermode atomic -race  ./pkg/... ./cmd/... `go list ./internal/... | grep -v internal/tdsclient`
-
-.PHONY: test-int
-#? test-int: Run the integration tests
-test-int:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum --junitfile=coverage-int.xml --jsonfile=coverage-int.json -- \
- 		-tags=integration -coverprofile=coverage-int.txt -covermode atomic -race ./internal/tdsclient/.
+ 		-coverprofile=coverage-unit.txt -covermode atomic -race  ./pkg/... ./cmd/... ./internal/...
 
 .PHONY: test-e2e
 #? test-e2e: Run the E2E tests

@@ -3,7 +3,7 @@ package querycoordinator
 import (
 	"context"
 
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 )
 
 // QueryCoordinator provides methods to run SQL query against a few ObjectServers concurrently and collect all results
@@ -28,10 +28,10 @@ func NewQueryCoordinator(client Client, clients ...Client) *QueryCoordinator {
 // All unknown client names will be ignored
 func (q *QueryCoordinator) Exec(
 	ctx context.Context,
-	query models.Query,
-	user models.Credentials,
+	query db.Query,
+	user db.Credentials,
 	clientNames ...string,
-) map[string]models.QueryResult {
+) map[string]db.QueryResult {
 	if len(clientNames) == 0 {
 		clientNames = append(clientNames, q.ClientNames()...)
 	}
@@ -48,7 +48,7 @@ func (q *QueryCoordinator) Exec(
 		}(client)
 	}
 
-	result := make(map[string]models.QueryResult, len(actualClients))
+	result := make(map[string]db.QueryResult, len(actualClients))
 	for i := 0; i < len(actualClients); i++ {
 		resp := <-clientResponses
 		result[resp.ncosName] = resp.result
@@ -78,5 +78,5 @@ func (q *QueryCoordinator) actualClients(names ...string) (clients []Client) {
 
 type clientResponse struct {
 	ncosName string
-	result   models.QueryResult
+	result   db.QueryResult
 }

@@ -3,10 +3,11 @@ package restapi
 import (
 	"context"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	qc "github.com/ncotds/nco-qoordinator/internal/querycoordinator"
 	"github.com/ncotds/nco-qoordinator/internal/restapi/gen"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 var _ gen.Handler = (*CoordinatorService)(nil)
@@ -24,7 +25,7 @@ func (c CoordinatorService) RawSQLPost(
 	req *gen.RawSQLRequest,
 	_ gen.RawSQLPostParams,
 ) (gen.RawSQLListResponse, error) {
-	qRes := c.Coordinator.Exec(ctx, models.Query{SQL: req.SQL}, GetCredentials(ctx), req.Clusters...)
+	qRes := c.Coordinator.Exec(ctx, db.Query{SQL: req.SQL}, GetCredentials(ctx), req.Clusters...)
 
 	listResp := make(gen.RawSQLListResponse, 0, len(qRes))
 	for name, qr := range qRes {

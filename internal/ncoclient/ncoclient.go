@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
+	db "github.com/ncotds/nco-lib/dbconnector"
+
 	cm "github.com/ncotds/nco-qoordinator/internal/connmanager"
-	db "github.com/ncotds/nco-qoordinator/internal/dbconnector"
 	qc "github.com/ncotds/nco-qoordinator/internal/querycoordinator"
 	"github.com/ncotds/nco-qoordinator/pkg/app"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
 )
 
 const logLabelClient = "ncoclient/NcoClient"
@@ -87,8 +87,8 @@ func (c *NcoClient) Name() string {
 }
 
 // Exec runs query and return result or exit on context cancellation
-func (c *NcoClient) Exec(ctx context.Context, query models.Query, credentials models.Credentials) models.QueryResult {
-	var result models.QueryResult
+func (c *NcoClient) Exec(ctx context.Context, query db.Query, credentials db.Credentials) db.QueryResult {
+	var result db.QueryResult
 	done := make(chan struct{})
 	go func() {
 		result = c.exec(ctx, query, credentials)
@@ -97,7 +97,7 @@ func (c *NcoClient) Exec(ctx context.Context, query models.Query, credentials mo
 
 	select {
 	case <-ctx.Done():
-		return models.QueryResult{Error: ctx.Err()}
+		return db.QueryResult{Error: ctx.Err()}
 	case <-done:
 	}
 	return result
@@ -109,12 +109,12 @@ func (c *NcoClient) Close() error {
 	return c.pool.Close()
 }
 
-func (c *NcoClient) exec(ctx context.Context, query models.Query, credentials models.Credentials) models.QueryResult {
+func (c *NcoClient) exec(ctx context.Context, query db.Query, credentials db.Credentials) db.QueryResult {
 	ctx = app.WithLogAttrs(ctx, app.Attrs{"user": credentials.UserName})
 
 	conn, err := c.pool.Acquire(ctx, credentials)
 	if err != nil {
-		return models.QueryResult{Error: err}
+		return db.QueryResult{Error: err}
 	}
 
 	rows, affected, err := conn.Exec(ctx, query)
@@ -126,7 +126,7 @@ func (c *NcoClient) exec(ctx context.Context, query models.Query, credentials mo
 		}
 		conn, err = c.pool.Acquire(ctx, credentials)
 		if err != nil {
-			return models.QueryResult{Error: err}
+			return db.QueryResult{Error: err}
 		}
 
 		rows, affected, err = conn.Exec(ctx, query)
@@ -138,7 +138,7 @@ func (c *NcoClient) exec(ctx context.Context, query models.Query, credentials mo
 	} else {
 		c.log.DebugContext(ctx, "connection released to pool")
 	}
-	return models.QueryResult{
+	return db.QueryResult{
 		RowSet:       rows,
 		AffectedRows: affected,
 		Error:        err,

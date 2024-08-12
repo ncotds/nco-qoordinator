@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
-	"github.com/ncotds/nco-qoordinator/pkg/config"
-	"github.com/ncotds/nco-qoordinator/pkg/models"
+	db "github.com/ncotds/nco-lib/dbconnector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ncotds/nco-qoordinator/pkg/config"
 )
 
 const TestEnvPrefix = "TEST_E2E"
@@ -62,7 +63,7 @@ var (
 )
 
 func DoTestCRUD(t *testing.T, client Client) {
-	creds := models.Credentials{UserName: TestUser, Password: TestPassword}
+	creds := db.Credentials{UserName: TestUser, Password: TestPassword}
 	row := AlertStatusRecordFactory()
 
 	insQ, _, err := NcoSql.Insert(TestAlertsTable).Rows(row).ToSQL()
@@ -89,7 +90,7 @@ func DoTestCRUD(t *testing.T, client Client) {
 		ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 		defer cancel()
 
-		insResp, err := client.RawSQLPost(ctx, models.Query{SQL: insQ}, creds)
+		insResp, err := client.RawSQLPost(ctx, db.Query{SQL: insQ}, creds)
 		if assert.NoError(t, err, "query fails") {
 			assertResp(t, insResp, []AlertStatusRecord{}, 1)
 		}
@@ -99,7 +100,7 @@ func DoTestCRUD(t *testing.T, client Client) {
 		ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 		defer cancel()
 
-		selResp, err := client.RawSQLPost(ctx, models.Query{SQL: selQ}, creds)
+		selResp, err := client.RawSQLPost(ctx, db.Query{SQL: selQ}, creds)
 		if assert.NoError(t, err, "query fails") {
 			assertResp(t, selResp, []AlertStatusRecord{row}, 1)
 		}
@@ -109,7 +110,7 @@ func DoTestCRUD(t *testing.T, client Client) {
 		ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 		defer cancel()
 
-		updResp, err := client.RawSQLPost(ctx, models.Query{SQL: updQ}, creds)
+		updResp, err := client.RawSQLPost(ctx, db.Query{SQL: updQ}, creds)
 		if assert.NoError(t, err, "query fails") {
 			assertResp(t, updResp, []AlertStatusRecord{}, 1)
 		}
@@ -119,7 +120,7 @@ func DoTestCRUD(t *testing.T, client Client) {
 		ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 		defer cancel()
 
-		delResp, err := client.RawSQLPost(ctx, models.Query{SQL: delQ}, creds)
+		delResp, err := client.RawSQLPost(ctx, db.Query{SQL: delQ}, creds)
 		if assert.NoError(t, err, "query fails") {
 			assertResp(t, delResp, []AlertStatusRecord{}, 1)
 		}
@@ -129,7 +130,7 @@ func DoTestCRUD(t *testing.T, client Client) {
 		ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
 		defer cancel()
 
-		selResp2, err := client.RawSQLPost(ctx, models.Query{SQL: selQ}, creds)
+		selResp2, err := client.RawSQLPost(ctx, db.Query{SQL: selQ}, creds)
 		if assert.NoError(t, err, "query fails") {
 			assertResp(t, selResp2, []AlertStatusRecord{}, 0)
 		}
