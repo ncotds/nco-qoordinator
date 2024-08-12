@@ -9,6 +9,7 @@ setup-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.58.0
 	go install github.com/michurin/human-readable-json-logging/cmd/pplog@v0.0.0-20240616030539-dd4a67e261f0
 	go install github.com/vektra/mockery/v2@v2.43.0
+	go install github.com/ogen-go/ogen/cmd/ogen@v1.2.2
 	go install golang.org/x/tools/cmd/goimports@v0.21.0
 	go install gotest.tools/gotestsum@v1.11.0
 
@@ -23,7 +24,7 @@ test-unit:
  		-coverprofile=coverage-unit.txt -covermode atomic -race  ./pkg/... ./cmd/... `go list ./internal/... | grep -v internal/tdsclient`
 
 .PHONY: test-int
-#? test-unit: Run the integration tests
+#? test-int: Run the integration tests
 test-int:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) gotestsum --junitfile=coverage-int.xml --jsonfile=coverage-int.json -- \
  		-tags=integration -coverprofile=coverage-int.txt -covermode atomic -race ./internal/tdsclient/.
